@@ -10,9 +10,13 @@ export const useGlobalStyles = (theme: Theme) => {
       flex: 1,
       paddingTop: top,
       paddingBottom: bottom,
-      paddingLeft: left + 10,
-      paddingRight: right + 10,
+      paddingLeft: left + 14,
+      paddingRight: right + 14,
       backgroundColor: theme.background,
     },
+    headerRow: {
+      flexDirection: "row",
+      alignItems: "center",
+    }
   });
 };

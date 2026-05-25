@@ -1,4 +1,12 @@
-import { FONT_SIZE, FONT_WEIGHT, Theme } from "@/constants/theme";
+import HomeSearchBar from "@/components/HomeSearchBar";
+import HomeStatsGrid from "@/components/HomeStatsGrid";
+import {
+  FONT_FAMILY,
+  FONT_SIZE,
+  FONT_WEIGHT,
+  SPACING,
+  Theme,
+} from "@/constants/theme";
 import { useGlobalStyles } from "@/constants/useGlobalStyles";
 import { useTheme } from "@/hooks/useTheme";
 import React from "react";
@@ -11,7 +19,14 @@ const HomeScreen = () => {
 
   return (
     <View style={globalStyles.screenContainer}>
-      <Text style={styles.title}>HomeScreen</Text>
+      {/* Header Row */}
+      <View style={[globalStyles.headerRow, styles.headerRow]}>
+        <Text style={styles.title}>Snipr-ai</Text>
+      </View>
+      <View style={styles.searchWrap}>
+        <HomeSearchBar />
+      </View>
+      <HomeStatsGrid />
     </View>
   );
 };
@@ -20,9 +35,16 @@ export default HomeScreen;
 
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
+    headerRow: {
+      marginTop: SPACING.md,
+    },
     title: {
-      fontSize: FONT_SIZE.lg,
+      fontSize: FONT_SIZE.xxl,
       fontWeight: FONT_WEIGHT.bold,
+      fontFamily: FONT_FAMILY.bold,
       color: theme.text,
+    },
+    searchWrap: {
+      marginTop: SPACING.md,
     },
   });
