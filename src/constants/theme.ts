@@ -1,13 +1,16 @@
+
 export const COLORS = {
-    light:{
-        background: '#fffefe',
-        text: '#000000',
-    },
-    dark: {
-        background: '#1c1c1c',
-        text: '#FFFFFF',
-    },
+  light: {
+    background: '#fffefe',
+    text: '#000000',
+  },
+  dark: {
+    background: '#1c1c1c',
+    text: '#FFFFFF',
+  },
 };
+export type Theme = typeof COLORS.light;
+export type ColorScheme = keyof typeof COLORS;
 
 export const FONT_SIZE = {
     sm: 12,
