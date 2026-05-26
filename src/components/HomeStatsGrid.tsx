@@ -10,6 +10,7 @@ import {
 } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
@@ -56,9 +57,24 @@ const StatCard = ({ item, theme, styles }: StatCardProps) => {
     scale.value = withTiming(1, { duration: 110 });
   };
 
+  const handlePress = () => {
+    switch (item.key) {
+      case 'snippets': 
+        router.push('/(tabs)/home/SnippetDetailScreen');
+        break;
+      case 'favorites':
+        router.push('/(tabs)/home/FavouritesScreen');
+        break;
+      default:
+        // Future routes
+        break;
+    }
+  };
+
   return (
     <AnimatedPressable
       accessibilityRole="button"
+      onPress={handlePress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       style={[styles.card, animatedStyle]}

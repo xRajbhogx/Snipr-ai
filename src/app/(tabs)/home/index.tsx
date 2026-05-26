@@ -9,6 +9,8 @@ import {
 } from "@/constants/theme";
 import { useGlobalStyles } from "@/constants/useGlobalStyles";
 import { useTheme } from "@/hooks/useTheme";
+import { Button } from "@react-navigation/elements";
+import { router } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 
@@ -27,6 +29,11 @@ const HomeScreen = () => {
         <HomeSearchBar />
       </View>
       <HomeStatsGrid />
+      <Button 
+        onPressIn={()=>router.push('/(tabs)/home/CreateSnippetScreen')}
+        style= {{margin: 20}}> 
+          Add a new snippet
+      </Button>
     </View>
   );
 };

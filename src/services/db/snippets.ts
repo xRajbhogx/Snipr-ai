@@ -28,6 +28,7 @@ export function createSnippet(params: CreateSnippetParams) {
   return result.lastInsertRowId;
 }
 
+
 export function getAllSnippets(language?: string): SnippetType[] {
   if (language) {
     return db.getAllSync(`SELECT * FROM snippets WHERE language = ? ORDER BY created_at DESC`, [language]) as SnippetType[];
@@ -35,12 +36,15 @@ export function getAllSnippets(language?: string): SnippetType[] {
   return db.getAllSync(`SELECT * FROM snippets ORDER BY created_at DESC`) as SnippetType[];
 }
 
+
 export function getSnippetById(id: number): SnippetType | null {
   const result = db.getFirstSync(`SELECT * FROM snippets WHERE id = ?`, [id]);
   return (result as SnippetType) || null;
 }
 
+
 export type UpdateSnippetParams = CreateSnippetParams & { id: number };
+
 
 export function updateSnippet(params: UpdateSnippetParams) {
   const { id, title, code, language, tags, description, file_path, screenshot_path, ai_summary } = params;
@@ -53,6 +57,7 @@ export function updateSnippet(params: UpdateSnippetParams) {
   );
 }
 
+
 export function updateSnippetAiSummary(id: number, summary: string) {
   db.runSync(
     `UPDATE snippets SET ai_summary=?, updated_at=unixepoch() WHERE id=?`,
@@ -60,17 +65,21 @@ export function updateSnippetAiSummary(id: number, summary: string) {
   );
 }
 
+
 export function deleteSnippet(id: number) {
   db.runSync(`DELETE FROM snippets WHERE id = ?`, [id]);
 }
+
 
 export function toggleFavorite(id: number, current: number) {
   db.runSync(`UPDATE snippets SET favorite=? WHERE id=?`, [current ? 0 : 1, id]);
 }
 
+
 export function getFavorites(): SnippetType[] {
   return db.getAllSync(`SELECT * FROM snippets WHERE favorite = 1 ORDER BY created_at DESC`) as SnippetType[];
 }
+
 
 export function searchSnippets(query: string): SnippetType[] {
   const q = `%${query}%`;
