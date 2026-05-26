@@ -10,14 +10,15 @@ import {
 } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import React from "react";
+import { router, useFocusEffect } from "expo-router";
+import React, { useState, useCallback } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
     useAnimatedStyle,
     useSharedValue,
     withTiming,
 } from "react-native-reanimated";
+import { getDashboardStats } from "@/services/db/snippets";
 
 type StatItem = {
   key: string;
@@ -26,13 +27,13 @@ type StatItem = {
   icon: keyof typeof MaterialCommunityIcons.glyphMap;
 };
 
-const STATS: StatItem[] = [
-  { key: "snippets", label: "Snippets", value: "1,248", icon: "code-tags" },
-  { key: "favorites", label: "Favorites", value: "156", icon: "star" },
-  { key: "files", label: "Files", value: "3,421", icon: "folder-outline" },
-  { key: "screenshots", label: "Screenshots", value: "1,168", icon: "image-outline" },
-  { key: "downloads", label: "Downloads", value: "342", icon: "download" },
-  { key: "trash", label: "Trash", value: "28", icon: "trash-can-outline" },
+const STATS_TEMPLATE: Omit<StatItem, "value">[] = [
+  { key: "snippets", label: "Snippets", icon: "code-tags" },
+  { key: "favorites", label: "Favorites", icon: "star" },
+  { key: "files", label: "Files", icon: "folder-outline" },
+  { key: "screenshots", label: "Screenshots", icon: "image-outline" },
+  { key: "downloads", label: "Downloads", icon: "download" },
+  { key: "trash", label: "Trash", icon: "trash-can-outline" },
 ];
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -93,11 +94,54 @@ const StatCard = ({ item, theme, styles }: StatCardProps) => {
 const HomeStatsGrid = () => {
   const theme = useTheme();
   const styles = makeStyles(theme);
+  const [stats, setStats] = useState({
+    snippets: 0,
+    favorites: 0,
+    files: 0,
+    screenshots: 0,
+    downloads: 0,
+    trash: 0,
+  });
+
+  useFocusEffect(
+    useCallback(() => {
+      try {
+        const counts = getDashboardStats();
+        setStats(counts);
+      } catch (error) {
+        console.error("Error loading dashboard stats:", error);
+      }
+    }, [])
+  );
+
+  const getStatValue = (key: string): string => {
+    switch (key) {
+      case "snippets":
+        return stats.snippets.toLocaleString();
+      case "favorites":
+        return stats.favorites.toLocaleString();
+      case "files":
+        return stats.files.toLocaleString();
+      case "screenshots":
+        return stats.screenshots.toLocaleString();
+      case "downloads":
+        return stats.downloads.toLocaleString();
+      case "trash":
+        return stats.trash.toLocaleString();
+      default:
+        return "0";
+    }
+  };
 
   return (
     <View style={styles.grid}>
-      {STATS.map((item) => (
-        <StatCard key={item.key} item={item} theme={theme} styles={styles} />
+      {STATS_TEMPLATE.map((item) => (
+        <StatCard 
+          key={item.key} 
+          item={{ ...item, value: getStatValue(item.key) }} 
+          theme={theme} 
+          styles={styles} 
+        />
       ))}
     </View>
   );

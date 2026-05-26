@@ -47,7 +47,7 @@ const AllSnippetsScreen = () => {
     <View style={styles.emptyContainer}>
       <MaterialCommunityIcons name="code-tags" size={ICON_SIZE.xl * 2} color={theme.inactiveTab} />
       <Text style={styles.emptyTitle}>No snippets found</Text>
-      <Text style={styles.emptySubtext}>You haven't created any snippets yet.</Text>
+      <Text style={styles.emptySubtext}>{"You haven't created any snippets yet."}</Text>
     </View>
   );
 

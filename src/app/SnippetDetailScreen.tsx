@@ -2,7 +2,6 @@ import {
   BORDER_RADIUS,
   FONT_FAMILY,
   FONT_SIZE,
-  FONT_WEIGHT,
   ICON_SIZE,
   SHADOW,
   SPACING,
@@ -24,10 +23,6 @@ import {
   Text,
   View,
 } from "react-native";
-import Animated, {
-} from "react-native-reanimated";
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 const SnippetDetailScreen = () => {
   const { id } = useLocalSearchParams();

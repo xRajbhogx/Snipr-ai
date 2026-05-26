@@ -117,9 +117,15 @@ const CreateSnippetScreen = () => {
 
   // Simulated OCR Scanner
   const handleOcrScan = () => {
-    Alert.alert(
-      'OCR Scanning...'
-    )
+    setIsScanningOcr(true);
+    setTimeout(() => {
+      setIsScanningOcr(false);
+      setCode((prev) => 
+        (prev ? prev + "\n\n" : "") + 
+        `// Extracted via OCR Scan\nfunction greetUser(name: string) {\n  return \`Hello, \${name}!\`;\n}`
+      );
+      Alert.alert("OCR Success", "Code has been successfully scanned and extracted into the editor.");
+    }, 1500);
   };
 
 

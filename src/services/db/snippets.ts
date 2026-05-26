@@ -92,3 +92,32 @@ export function searchSnippets(query: string): SnippetType[] {
     [q, q, q, q, q, q]
   ) as SnippetType[];
 }
+
+
+export function getDashboardStats() {
+  try {
+    const snippets = db.getFirstSync(`SELECT COUNT(*) as count FROM snippets`) as { count: number } | null;
+    const favorites = db.getFirstSync(`SELECT COUNT(*) as count FROM snippets WHERE favorite = 1`) as { count: number } | null;
+    const files = db.getFirstSync(`SELECT COUNT(*) as count FROM snippets WHERE file_path IS NOT NULL`) as { count: number } | null;
+    const screenshots = db.getFirstSync(`SELECT COUNT(*) as count FROM snippets WHERE screenshot_path IS NOT NULL`) as { count: number } | null;
+
+    return {
+      snippets: snippets?.count || 0,
+      favorites: favorites?.count || 0,
+      files: files?.count || 0,
+      screenshots: screenshots?.count || 0,
+      downloads: 0,
+      trash: 0,
+    };
+  } catch (error) {
+    console.error("Failed to fetch dashboard stats:", error);
+    return {
+      snippets: 0,
+      favorites: 0,
+      files: 0,
+      screenshots: 0,
+      downloads: 0,
+      trash: 0,
+    };
+  }
+}
