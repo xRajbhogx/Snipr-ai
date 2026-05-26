@@ -84,6 +84,7 @@ export const FONT_FAMILY = {
   medium: "Inter-Medium",
   semibold: "Inter-SemiBold",
   bold: "Inter-Bold",
+  extrabold: "Inter-ExtraBold",
 };
 
 export const ICON_SIZE = {

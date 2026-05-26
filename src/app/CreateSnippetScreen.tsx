@@ -2,14 +2,14 @@ import {
   BORDER_RADIUS,
   FONT_FAMILY,
   FONT_SIZE,
-  FONT_WEIGHT,
   ICON_SIZE,
+  SHADOW,
   SPACING,
   Theme,
 } from "@/constants/theme";
 import { useGlobalStyles } from "@/constants/useGlobalStyles";
 import { useTheme } from "@/hooks/useTheme";
-import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -33,14 +33,6 @@ const LANGUAGES = [
   { id: "go", label: "Go", icon: "language-go" },
 ];
 
-// const TEMPLATES: Record<string, string> = {
-//   TypeScript: `export interface User {\n  id: string;\n  name: string;\n  email: string;\n}\n\nexport const getUser = async (id: string): Promise<User> => {\n  const res = await fetch(\`/api/users/\${id}\`);\n  return res.json();\n};`,
-//   JavaScript: `const calculateDiscount = (price, discount) => {\n  if (price < 0 || discount < 0) return 0;\n  return price - (price * (discount / 100));\n};\n\nconsole.log(calculateDiscount(100, 15)); // 85`,
-//   Python: `def memoize(func):\n    cache = {}\n    def wrapper(*args):\n        if args not in cache:\n            cache[args] = func(*args)\n        return cache[args]\n    return wrapper\n\n@memoize\ndef fibonacci(n):\n    if n < 2: return n\n    return fibonacci(n-1) + fibonacci(n-2)`,
-//   Java: `import java.util.List;\nimport java.util.stream.Collectors;\n\npublic class StreamExample {\n    public List<String> filterNames(List<String> names) {\n        return names.stream()\n            .filter(name -> name.startsWith("A"))\n            .collect(Collectors.toList());\n    }\n}`,
-//   Go: `package main\n\nimport (\n\t"fmt"\n\t"net/http"\n)\n\nfunc handler(w http.ResponseWriter, r *http.Request) {\n\tfmt.Fprintf(w, "Hello, %s!", r.URL.Path[1:])\n}\n\nfunc main() {\n\thttp.HandleFunc("/", handler)\n\thttp.ListenAndServe(":8080", nil)\n}`
-// };
-
 const CreateSnippetScreen = () => {
   const theme = useTheme();
   const globalStyles = useGlobalStyles(theme);
@@ -48,23 +40,30 @@ const CreateSnippetScreen = () => {
 
   // Form state
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [selectedLang, setSelectedLang] = useState("TypeScript");
   const [showLangDropdown, setShowLangDropdown] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [code, setCode] = useState("");
 
-  // Attachments state (using string file paths as simulated placeholders)
+  // Attachments state
   const [screenshotPath, setScreenshotPath] = useState<string | null>(null);
   const [filePath, setFilePath] = useState<string | null>(null);
 
   // Action feedback states
   const [isScanningOcr, setIsScanningOcr] = useState(false);
 
-  // Character and line count calculations
-  const characterCount = title.length;
+  // Line count calculations for the code editor
   const lines = code.split("\n");
   const lineNumbers = Array.from({ length: Math.max(lines.length, 1) }, (_, i) => i + 1);
+
+  // Current Date display matching SnippetDetailScreen
+  const currentDate = new Date().toLocaleDateString(undefined, {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
 
   // Tag Handlers
   const handleAddTag = () => {
@@ -97,22 +96,17 @@ const CreateSnippetScreen = () => {
 
   // Paste
   const handlePaste = () => {
-    Alert.alert(
-      "Paste pressed!"
-    );
+    Alert.alert("Paste action", "Boilerplate pasted from clipboard.");
+    setCode((prev) => (prev ? prev + "\n" : "") + `// Pasted code\nconsole.log("Hello, World!");`);
   };
 
   // Attachment Actions
   const handleAttachScreenshot = () => {
-    Alert.alert(
-      "Screenshot"
-    )
+    setScreenshotPath("simulated_screenshot.png");
   };
 
   const handleImportFile = () => {
-    Alert.alert(
-      "Import File"
-    );
+    setFilePath("simulated_file.json");
   };
 
   // Simulated OCR Scanner
@@ -127,8 +121,6 @@ const CreateSnippetScreen = () => {
       Alert.alert("OCR Success", "Code has been successfully scanned and extracted into the editor.");
     }, 1500);
   };
-
-
 
   // SQLite Save Handler
   const handleSaveSnippet = () => {
@@ -148,6 +140,7 @@ const CreateSnippetScreen = () => {
         code: code.trim(),
         language: selectedLang,
         tags: tagsString || undefined,
+        description: description.trim() || undefined,
         file_path: filePath || undefined,
         screenshot_path: screenshotPath || undefined,
       });
@@ -168,65 +161,52 @@ const CreateSnippetScreen = () => {
 
   return (
     <View style={globalStyles.screenContainer}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.headerIcon}>
-          <Ionicons name="arrow-back" size={ICON_SIZE.lg} color={theme.text} />
+      {/* Header matching SnippetDetailScreen */}
+      <View style={[globalStyles.headerRow, styles.header]}>
+        <Pressable onPress={() => router.back()} style={styles.iconButton}>
+          <MaterialCommunityIcons
+            name="arrow-left"
+            size={ICON_SIZE.xl}
+            color={theme.text}
+          />
         </Pressable>
-        <View style={styles.headerTitleContainer}>
-          <Text style={styles.headerTitle}>New Snippet</Text>
-          <View style={styles.headerSubtitleRow}>
-            <Text style={styles.headerSubtitle}>Draft saved locally</Text>
-            <MaterialCommunityIcons 
-              name="cloud-outline" 
-              size={ICON_SIZE.sm} 
-              color={theme.activeTab} 
-              style={styles.headerCloudIcon} 
-            />
-          </View>
-        </View>
-        <View style={styles.headerRight}>
-          <Pressable style={styles.headerIcon}>
-            <MaterialCommunityIcons name="history" size={ICON_SIZE.lg} color={theme.text} />
-          </Pressable>
-          <Pressable style={styles.headerIcon}>
-            <MaterialCommunityIcons name="dots-vertical" size={ICON_SIZE.lg} color={theme.text} />
-          </Pressable>
-        </View>
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          New Snippet
+        </Text>
+        <Pressable onPress={handleSaveSnippet} style={styles.saveButton}>
+          <Text style={styles.saveButtonText}>
+            Save
+          </Text>
+          {/* <MaterialCommunityIcons
+            name="check"
+            size={ICON_SIZE.xl}
+            color={theme.activeTab}
+          /> */}
+        </Pressable>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         
-        {/* Title Section */}
-        <Animated.View entering={FadeInDown.delay(100).duration(400)}>
-          <Text style={styles.sectionLabel}>Title</Text>
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.input}
-              value={title}
-              onChangeText={setTitle}
-              placeholder="Enter title..."
-              placeholderTextColor={theme.mutedText}
-              maxLength={80}
-            />
-            <Text style={styles.charCount}>{characterCount}/80</Text>
+        {/* Language Selection & Date Metadata Section */}
+        <Animated.View style={styles.languageSection} entering={FadeInDown.delay(100).duration(400)}>
+          <View style={styles.metaContainer}>
+            <Pressable
+              onPress={() => setShowLangDropdown(!showLangDropdown)}
+              style={styles.languageBadge}
+            >
+              <View style={styles.badgeRow}>
+                <Text style={styles.languageText}>{selectedLang}</Text>
+                <MaterialCommunityIcons
+                  name="chevron-down"
+                  size={14}
+                  color={theme.activeTab}
+                  style={styles.chevronIcon}
+                />
+              </View>
+            </Pressable>
+            <Text style={styles.dateText}>{currentDate}</Text>
           </View>
-        </Animated.View>
 
-        {/* Language Section */}
-        <Animated.View style={styles.languageSection} entering={FadeInDown.delay(150).duration(400)}>
-          <Text style={styles.sectionLabel}>Language</Text>
-          <Pressable 
-            style={styles.dropdownContainer} 
-            onPress={() => setShowLangDropdown(!showLangDropdown)}
-          >
-            <Text style={styles.dropdownText}>{selectedLang}</Text>
-            <MaterialCommunityIcons 
-              name={showLangDropdown ? "chevron-up" : "chevron-down"} 
-              size={ICON_SIZE.md} 
-              color={theme.text} 
-            />
-          </Pressable>
           {showLangDropdown && (
             <View style={styles.dropdownMenu}>
               {LANGUAGES.map((lang) => (
@@ -255,13 +235,39 @@ const CreateSnippetScreen = () => {
           )}
         </Animated.View>
 
+        {/* Title Input matching mainTitle style */}
+        <Animated.View entering={FadeInDown.delay(150).duration(400)}>
+          <TextInput
+            style={styles.mainTitleInput}
+            value={title}
+            onChangeText={setTitle}
+            placeholder="Snippet Title"
+            placeholderTextColor={theme.mutedText}
+            maxLength={80}
+          />
+        </Animated.View>
+
+        {/* Description Section */}
+        <Animated.View style={styles.section} entering={FadeInDown.delay(200).duration(400)}>
+          <Text style={styles.sectionHeader}>Description</Text>
+          <TextInput
+            style={styles.bodyInput}
+            multiline
+            value={description}
+            onChangeText={setDescription}
+            placeholder="Add a description or notes..."
+            placeholderTextColor={theme.mutedText}
+            textAlignVertical="top"
+          />
+        </Animated.View>
+
         {/* Tags Section */}
-        <Animated.View entering={FadeInDown.delay(200).duration(400)}>
-          <Text style={styles.sectionLabel}>Tags</Text>
+        <Animated.View style={styles.section} entering={FadeInDown.delay(250).duration(400)}>
+          <Text style={styles.sectionHeader}>Tags</Text>
           <View style={styles.tagsContainer}>
             {tags.map((tag, index) => (
               <View key={index} style={styles.tagChip}>
-                <Text style={styles.tagText}>{tag}</Text>
+                <Text style={styles.tagText}>#{tag}</Text>
                 <Pressable onPress={() => handleRemoveTag(index)} style={styles.tagCloseBtn}>
                   <MaterialCommunityIcons name="close" size={14} color={theme.text} />
                 </Pressable>
@@ -272,7 +278,7 @@ const CreateSnippetScreen = () => {
               value={tagInput}
               onChangeText={handleTagInputChange}
               onSubmitEditing={handleAddTag}
-              placeholder="Add tags..."
+              placeholder={tags.length === 0 ? "Add tags (space/comma separated)..." : "Add tag..."}
               placeholderTextColor={theme.mutedText}
               returnKeyType="done"
             />
@@ -280,17 +286,15 @@ const CreateSnippetScreen = () => {
         </Animated.View>
 
         {/* Code Section */}
-        <Animated.View entering={FadeInDown.delay(250).duration(400)}>
-          <Text style={styles.sectionLabel}>Code</Text>
+        <Animated.View style={styles.section} entering={FadeInDown.delay(300).duration(400)}>
+          <View style={styles.codeHeaderRow}>
+            <Text style={styles.sectionHeader}>Code</Text>
+            <Pressable onPress={handlePaste} style={styles.pasteButton}>
+              <MaterialCommunityIcons name="clipboard-outline" size={ICON_SIZE.md} color={theme.activeTab} />
+              <Text style={styles.pasteButtonText}>Paste</Text>
+            </Pressable>
+          </View>
           <View style={styles.codeContainer}>
-            <View style={styles.codeHeader}>
-              <View style={styles.codeHeaderLeft}>
-                <Text style={styles.codeHeaderText}>{selectedLang}</Text>
-              </View>
-              <Pressable onPress={handlePaste} style={styles.codeHeaderRight}>
-                <Text style={styles.pasteText}>Paste</Text>
-              </Pressable>
-            </View>
             <View style={styles.codeBody}>
               <View style={styles.lineNumbers}>
                 {lineNumbers.map(n => (
@@ -302,7 +306,7 @@ const CreateSnippetScreen = () => {
                 multiline
                 value={code}
                 onChangeText={setCode}
-                placeholder="Paste or type code here..."
+                placeholder="Write or paste your code here..."
                 placeholderTextColor={theme.mutedText}
                 textAlignVertical="top"
                 editable={true}
@@ -314,17 +318,16 @@ const CreateSnippetScreen = () => {
         </Animated.View>
 
         {/* Attachments Section */}
-        <Animated.View entering={FadeInDown.delay(300).duration(400)}>
-          <Text style={styles.sectionLabel}>Attachments</Text>
+        <Animated.View style={styles.section} entering={FadeInDown.delay(350).duration(400)}>
+          <Text style={styles.sectionHeader}>Attachments</Text>
           
-          {/* Active Previews of attachments */}
           {(screenshotPath || filePath) && (
             <View style={styles.previewsContainer}>
               {screenshotPath && (
                 <View style={styles.previewChip}>
                   <MaterialCommunityIcons name="image" size={ICON_SIZE.sm} color={theme.activeTab} />
                   <Text style={styles.previewText} numberOfLines={1}>
-                    {screenshotPath}
+                    {screenshotPath.split('/').pop()}
                   </Text>
                   <Pressable onPress={() => setScreenshotPath(null)} style={styles.previewDeleteBtn}>
                     <MaterialCommunityIcons name="close-circle" size={16} color={theme.text} />
@@ -335,7 +338,7 @@ const CreateSnippetScreen = () => {
                 <View style={styles.previewChip}>
                   <MaterialCommunityIcons name="file-code-outline" size={ICON_SIZE.sm} color="#F5A623" />
                   <Text style={styles.previewText} numberOfLines={1}>
-                    {filePath}
+                    {filePath.split('/').pop()}
                   </Text>
                   <Pressable onPress={() => setFilePath(null)} style={styles.previewDeleteBtn}>
                     <MaterialCommunityIcons name="close-circle" size={16} color={theme.text} />
@@ -348,17 +351,17 @@ const CreateSnippetScreen = () => {
           {isScanningOcr ? (
             <View style={styles.ocrLoadingContainer}>
               <ActivityIndicator color={theme.activeTab} size="small" />
-              <Text style={styles.ocrLoadingText}>Processing image & extracting code...</Text>
+              <Text style={styles.ocrLoadingText}>Scanning image & extracting code...</Text>
             </View>
           ) : (
             <View style={styles.attachmentsRow}>
               <Pressable onPress={handleAttachScreenshot} style={styles.attachmentBtn}>
                 <MaterialCommunityIcons name="image-outline" size={ICON_SIZE.md} color={theme.activeTab} />
-                <Text style={styles.attachmentText}>Attach Screenshot</Text>
+                <Text style={styles.attachmentText}>Screenshot</Text>
               </Pressable>
               <Pressable onPress={handleImportFile} style={styles.attachmentBtn}>
                 <MaterialCommunityIcons name="folder-outline" size={ICON_SIZE.md} color="#F5A623" />
-                <Text style={styles.attachmentText}>Import File</Text>
+                <Text style={styles.attachmentText}>File</Text>
               </Pressable>
               <Pressable onPress={handleOcrScan} style={styles.attachmentBtn}>
                 <MaterialCommunityIcons name="line-scan" size={ICON_SIZE.md} color="#7ED321" />
@@ -367,15 +370,8 @@ const CreateSnippetScreen = () => {
             </View>
           )}
         </Animated.View>
-      </ScrollView>
 
-      {/* Footer / Save Button */}
-      <View style={styles.footer}>
-        <Pressable onPress={handleSaveSnippet} style={styles.saveBtn}>
-          <MaterialCommunityIcons name="content-save-outline" size={ICON_SIZE.md} color="#FFF" />
-          <Text style={styles.saveBtnText}>Save Snippet</Text>
-        </Pressable>
-      </View>
+      </ScrollView>
     </View>
   );
 };
@@ -385,108 +381,86 @@ export default CreateSnippetScreen;
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
     header: {
+      marginTop: SPACING.md,
       flexDirection: "row",
       alignItems: "center",
-      paddingTop: SPACING.md,
-      paddingBottom: SPACING.sm,
+      justifyContent: "space-between",
     },
-    headerIcon: {
+    iconButton: {
       padding: SPACING.sm,
+      borderRadius: BORDER_RADIUS.full,
+      backgroundColor: theme.card,
     },
-    headerTitleContainer: {
-      flex: 1,
-      marginLeft: SPACING.sm,
+    saveButton: {
+      padding: SPACING.xs,
+      borderRadius: BORDER_RADIUS.full,
+      backgroundColor: theme.activeTab,
+    },
+    saveButtonText: {
+      paddingVertical: SPACING.sm,
+      paddingHorizontal: SPACING.md,
+      color: theme.white,
     },
     headerTitle: {
+      flex: 1,
+      textAlign: "center",
       fontSize: FONT_SIZE.lg,
-      fontWeight: FONT_WEIGHT.bold,
       fontFamily: FONT_FAMILY.bold,
       color: theme.text,
+      marginHorizontal: SPACING.md,
     },
-    headerSubtitleRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      marginTop: 2,
-    },
-    headerSubtitle: {
-      fontSize: FONT_SIZE.sm,
-      color: theme.mutedText,
-      fontFamily: FONT_FAMILY.regular,
-    },
-    headerCloudIcon: {
-      marginLeft: SPACING.xs,
-    },
-    headerRight: {
-      flexDirection: "row",
-    },
+
     scrollContent: {
-      paddingBottom: 120, // Expanded space for floating footer
-    },
-    sectionLabel: {
-      fontSize: FONT_SIZE.md,
-      color: theme.mutedText,
-      fontFamily: FONT_FAMILY.medium,
-      marginTop: SPACING.lg,
-      marginBottom: SPACING.sm,
-    },
-    inputContainer: {
-      backgroundColor: theme.card,
-      borderRadius: BORDER_RADIUS.md,
-      borderWidth: 1,
-      borderColor: theme.inputBorder,
-      flexDirection: "row",
-      alignItems: "center",
-      paddingHorizontal: SPACING.md,
-      height: 50,
-    },
-    input: {
-      flex: 1,
-      color: theme.text,
-      fontFamily: FONT_FAMILY.regular,
-      fontSize: FONT_SIZE.md,
-    },
-    charCount: {
-      color: theme.mutedText,
-      fontSize: FONT_SIZE.sm,
-      fontFamily: FONT_FAMILY.regular,
+      paddingVertical: SPACING.lg,
+      paddingBottom: SPACING.xxxl,
     },
     languageSection: {
       zIndex: 20,
       position: "relative",
     },
-    dropdownContainer: {
+    metaContainer: {
       flexDirection: "row",
-      justifyContent: "space-between",
       alignItems: "center",
-      backgroundColor: theme.card,
-      borderWidth: 1,
-      borderColor: theme.inputBorder,
-      borderRadius: BORDER_RADIUS.md,
-      paddingHorizontal: SPACING.md,
-      height: 50,
+      justifyContent: "space-between",
+      marginBottom: SPACING.sm,
     },
-    dropdownText: {
-      color: theme.text,
+    languageBadge: {
+      backgroundColor: theme.activeTabSoft,
+      paddingHorizontal: SPACING.md,
+      paddingVertical: SPACING.xs,
+      borderRadius: BORDER_RADIUS.sm,
+    },
+    badgeRow: {
+      flexDirection: "row",
+      alignItems: "center",
+    },
+    languageText: {
+      color: theme.activeTab,
+      fontSize: FONT_SIZE.sm,
+      fontFamily: FONT_FAMILY.semibold,
+      textTransform: "uppercase",
+    },
+    chevronIcon: {
+      marginLeft: 4,
+    },
+    dateText: {
+      color: theme.mutedText,
+      fontSize: FONT_SIZE.sm,
       fontFamily: FONT_FAMILY.medium,
-      fontSize: FONT_SIZE.md,
     },
     dropdownMenu: {
       backgroundColor: theme.card,
       borderWidth: 1,
-      borderColor: theme.inputBorder,
+      borderColor: theme.cardBorder,
       borderRadius: BORDER_RADIUS.md,
       marginTop: SPACING.xs,
       paddingVertical: SPACING.xs,
       position: "absolute",
-      top: 85,
+      top: 36,
       left: 0,
-      right: 0,
+      width: 200,
       zIndex: 100,
-      shadowColor: "#000",
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.2,
-      shadowRadius: 5,
-      elevation: 5,
+      ...SHADOW.md,
     },
     dropdownItem: {
       flexDirection: "row",
@@ -504,118 +478,151 @@ const makeStyles = (theme: Theme) =>
       color: theme.activeTab,
       fontFamily: FONT_FAMILY.medium,
     },
+    mainTitleInput: {
+      fontSize: FONT_SIZE.xxl,
+      fontFamily: FONT_FAMILY.extrabold,
+      color: theme.text,
+      marginBottom: SPACING.xl,
+      padding: 0,
+      marginTop: SPACING.sm
+    },
+    section: {
+      marginBottom: SPACING.xl,
+    },
+    sectionHeader: {
+      fontSize: FONT_SIZE.lg,
+      fontFamily: FONT_FAMILY.extrabold,
+      color: theme.text,
+      marginBottom: SPACING.sm,
+      backgroundColor: theme.cardBorder,
+      paddingHorizontal: SPACING.sm,
+      borderRadius: BORDER_RADIUS.sm
+    },
+    bodyInput: {
+      fontSize: FONT_SIZE.md,
+      fontFamily: FONT_FAMILY.regular,
+      color: theme.text,
+      lineHeight: 24,
+      minHeight: 80,
+      textAlignVertical: "top",
+      padding: 0,
+    },
     tagsContainer: {
       flexDirection: "row",
       flexWrap: "wrap",
+      gap: SPACING.sm,
+      marginBottom: SPACING.xl,
       alignItems: "center",
-      backgroundColor: theme.card,
-      borderWidth: 1,
-      borderColor: theme.inputBorder,
-      borderRadius: BORDER_RADIUS.md,
-      paddingHorizontal: SPACING.md,
-      paddingVertical: 4,
-      minHeight: 50,
+      
     },
     tagChip: {
+      backgroundColor: theme.tagBg,
+      paddingLeft: SPACING.md,
+      paddingRight: SPACING.sm,
+      paddingVertical: SPACING.xs,
+      borderRadius: BORDER_RADIUS.full,
       flexDirection: "row",
       alignItems: "center",
-      backgroundColor: theme.tagBg,
-      borderRadius: 12,
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      marginRight: SPACING.sm,
-      marginBottom: SPACING.xs,
-      marginTop: SPACING.xs,
+      gap: 6,
     },
     tagText: {
       color: theme.text,
-      fontFamily: FONT_FAMILY.regular,
       fontSize: FONT_SIZE.sm,
+      fontFamily: FONT_FAMILY.medium,
+      
     },
     tagCloseBtn: {
-      marginLeft: 6,
       justifyContent: "center",
       alignItems: "center",
     },
     tagInput: {
-      flex: 1,
-      minWidth: 100,
       color: theme.text,
-      fontFamily: FONT_FAMILY.regular,
-      fontSize: FONT_SIZE.md,
-      paddingVertical: 0,
+      fontSize: FONT_SIZE.sm,
+      fontFamily: FONT_FAMILY.medium,
+      minWidth: 120,
+      padding: 0,
     },
-    codeContainer: {
-      backgroundColor: theme.card,
-      borderRadius: BORDER_RADIUS.md,
-      borderWidth: 1,
-      borderColor: theme.cardBorder,
-      overflow: "hidden",
-    },
-    codeHeader: {
+    codeHeaderRow: {
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      paddingHorizontal: SPACING.md,
-      paddingVertical: SPACING.sm,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.cardBorder,
+      marginBottom: SPACING.xs,
+      backgroundColor: theme.cardBorder,
+      paddingHorizontal: SPACING.sm,
+      borderRadius: BORDER_RADIUS.sm
     },
-    codeHeaderLeft: {
+    pasteButton: {
       flexDirection: "row",
       alignItems: "center",
-      justifyContent: "center",
+      gap: SPACING.xs,
+      paddingVertical: SPACING.xs,
+      paddingHorizontal: SPACING.sm,
       borderRadius: BORDER_RADIUS.sm,
-      paddingVertical: 3,
-      paddingHorizontal: 10,
-      backgroundColor: theme.activeTabSoft,
-    },
-    codeHeaderText: {
-      color: theme.text,
-      fontFamily: FONT_FAMILY.medium,
-    },
-    codeHeaderRight: {
-      alignItems: "center",
-      justifyContent: "center",
-      borderRadius: BORDER_RADIUS.md,
-      paddingVertical: 3,
-      paddingHorizontal: 10,
       backgroundColor: theme.tagBg,
-      borderWidth: 1,
-      borderColor: theme.cardBorder,
     },
-    pasteText: {
-      color: theme.text,
+    pasteButtonText: {
+      color: theme.activeTab,
+      fontSize: FONT_SIZE.sm,
       fontFamily: FONT_FAMILY.semibold,
-      fontSize: 12,
+    },
+    codeContainer: {
+      backgroundColor: theme.codeBg,
+      borderRadius: BORDER_RADIUS.lg,
+      maxHeight: 350,
+      ...SHADOW.sm,
+      overflow: "hidden",
     },
     codeBody: {
       flexDirection: "row",
-      paddingVertical: SPACING.sm,
+      paddingVertical: SPACING.md,
     },
     lineNumbers: {
       paddingHorizontal: SPACING.sm,
       alignItems: "flex-end",
-      minWidth: 32,
+      minWidth: 36,
     },
     lineNumberText: {
       color: theme.mutedText,
-      fontFamily: FONT_FAMILY.regular,
-      fontSize: 13,
-      lineHeight: 20,
+      fontFamily: "monospace",
+      fontSize: FONT_SIZE.sm,
+      lineHeight: 22,
     },
     codeEditor: {
       flex: 1,
-      color: theme.text,
-      fontFamily: FONT_FAMILY.regular,
-      fontSize: 13,
-      lineHeight: 20,
-      paddingRight: SPACING.sm,
+      color: theme.codeText,
+      fontFamily: "monospace",
+      fontSize: FONT_SIZE.sm,
+      lineHeight: 22,
+      paddingRight: SPACING.md,
       minHeight: 180,
+      textAlignVertical: "top",
+      padding: 0,
+    },
+    attachmentsRow: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      gap: SPACING.sm,
+    },
+    attachmentBtn: {
+      flex: 1,
+      backgroundColor: theme.card,
+      borderRadius: BORDER_RADIUS.md,
+      borderWidth: 1,
+      borderColor: theme.cardBorder,
+      paddingVertical: SPACING.md,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    attachmentText: {
+      color: theme.text,
+      fontFamily: FONT_FAMILY.medium,
+      fontSize: 12,
+      marginTop: SPACING.xs,
     },
     previewsContainer: {
       flexDirection: "row",
       flexWrap: "wrap",
+      gap: SPACING.sm,
       marginBottom: SPACING.sm,
     },
     previewChip: {
@@ -625,17 +632,14 @@ const makeStyles = (theme: Theme) =>
       borderRadius: BORDER_RADIUS.sm,
       paddingHorizontal: SPACING.sm,
       paddingVertical: 6,
-      marginRight: SPACING.sm,
-      marginBottom: SPACING.sm,
       borderWidth: 1,
       borderColor: theme.cardBorder,
+      gap: 6,
     },
     previewText: {
       color: theme.text,
       fontFamily: FONT_FAMILY.medium,
       fontSize: 12,
-      marginLeft: 6,
-      marginRight: 8,
       maxWidth: 140,
     },
     previewDeleteBtn: {
@@ -657,49 +661,5 @@ const makeStyles = (theme: Theme) =>
       fontSize: FONT_SIZE.sm,
       marginTop: SPACING.sm,
     },
-    attachmentsRow: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-    },
-    attachmentBtn: {
-      flex: 1,
-      backgroundColor: theme.card,
-      borderRadius: BORDER_RADIUS.md,
-      borderWidth: 1,
-      borderColor: theme.cardBorder,
-      paddingVertical: SPACING.md,
-      alignItems: "center",
-      marginHorizontal: 4,
-    },
-    attachmentText: {
-      color: theme.text,
-      fontFamily: FONT_FAMILY.medium,
-      fontSize: 11,
-      marginTop: SPACING.xs,
-    },
 
-    footer: {
-      position: "absolute",
-      bottom: 0,
-      left: 0,
-      right: 0,
-      padding: SPACING.md,
-      backgroundColor: theme.background,
-      borderTopWidth: 1,
-      borderTopColor: theme.cardBorder,
-    },
-    saveBtn: {
-      backgroundColor: theme.activeTab,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      paddingVertical: SPACING.md,
-      borderRadius: BORDER_RADIUS.md,
-    },
-    saveBtnText: {
-      color: "#FFF",
-      fontFamily: FONT_FAMILY.semibold,
-      fontSize: FONT_SIZE.md,
-      marginLeft: SPACING.sm,
-    },
   });
