@@ -30,7 +30,7 @@ const HomeScreen = () => {
       </View>
       <HomeStatsGrid />
       <Button 
-        onPressIn={()=>router.push('/(tabs)/home/CreateSnippetScreen')}
+        onPressIn={()=>router.push('/CreateSnippetScreen')}
         style= {{margin: 20}}> 
           Add a new snippet
       </Button>

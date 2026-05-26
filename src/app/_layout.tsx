@@ -11,6 +11,12 @@ export default function RootLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="CreateSnippetScreen"
+        options={{
+          presentation: 'modal',
+          headerShown: false
+        }}
+      />
     </Stack>
   );
 }

@@ -9,6 +9,8 @@ export const COLORS = {
     card: "#ffffff",
     cardBorder: "#eeeeee",
     mutedText: "#5f5f5f",
+    inputBorder: "#cccccc",
+    tagBg: "#f0f0f0",
   },
   dark: {
     background: "#1c1c1c",
@@ -20,6 +22,8 @@ export const COLORS = {
     card: "#242424",
     cardBorder: "#2f2f2f",
     mutedText: "#b5b5b5",
+    inputBorder: "#3d3127",
+    tagBg: "#262626",
   },
 };
 export type Theme = typeof COLORS.light;

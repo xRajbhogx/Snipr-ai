@@ -1,8 +1,5 @@
 // All CRUD functions (createSnippet, getAll, etc.)
 import db from './client'
-import { Snippet } from '@/types' // Assumes you have an alias for src or we use relative path. Actually let's use relative path to be safe.
-// Let's use relative path `../types`
-
 import type { Snippet as SnippetType } from '../../types'
 
 export type CreateSnippetParams = {
