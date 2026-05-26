@@ -11,6 +11,13 @@ export const COLORS = {
     mutedText: "#5f5f5f",
     inputBorder: "#cccccc",
     tagBg: "#f0f0f0",
+    favorite: "#F59E0B",
+    success: "#22C55E",
+    successSoft: "rgba(34, 197, 94, 0.15)",
+    codeBg: "#000000ff",
+    codeText: "#D4D4D4",
+    white: "#FFFFFF",
+    snippetDescriptionBg: "#e6e6e6ff",
   },
   dark: {
     background: "#1c1c1c",
@@ -24,6 +31,13 @@ export const COLORS = {
     mutedText: "#b5b5b5",
     inputBorder: "#3d3127",
     tagBg: "#262626",
+    favorite: "#F59E0B",
+    success: "#22C55E",
+    successSoft: "rgba(34, 197, 94, 0.15)",
+    codeBg: "#1E1E1E",
+    codeText: "#D4D4D4",
+    white: "#FFFFFF",
+    snippetDescriptionBg: "#1e1e1eff",
   },
 };
 export type Theme = typeof COLORS.light;

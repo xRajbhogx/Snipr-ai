@@ -60,7 +60,7 @@ const StatCard = ({ item, theme, styles }: StatCardProps) => {
   const handlePress = () => {
     switch (item.key) {
       case 'snippets': 
-        router.push('/(tabs)/home/SnippetDetailScreen');
+        router.push('/AllSnippetsScreen');
         break;
       case 'favorites':
         router.push('/(tabs)/home/FavouritesScreen');

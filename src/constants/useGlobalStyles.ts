@@ -14,6 +14,20 @@ export const useGlobalStyles = (theme: Theme) => {
       paddingRight: right + 14,
       backgroundColor: theme.background,
     },
+    tabScreenContainer: {
+      flex: 1,
+      paddingTop: top,
+      paddingLeft: left + 14,
+      paddingRight: right + 14,
+      backgroundColor: theme.background,
+    },
+    tabScreenContentContainer: {
+      flexGrow: 1,
+      paddingTop: top,
+      paddingLeft: left + 14,
+      paddingRight: right + 14,
+      backgroundColor: theme.background,
+    },
     headerRow: {
       flexDirection: "row",
       alignItems: "center",
