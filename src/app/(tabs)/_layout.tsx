@@ -10,7 +10,7 @@ export default function RootLayout() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: theme.activeTab,
-        tabBarInactiveTintColor: theme.mutedText,
+        tabBarInactiveTintColor: theme.inactiveTab,
         tabBarStyle: {
           backgroundColor: theme.background,
           borderTopWidth: 1,

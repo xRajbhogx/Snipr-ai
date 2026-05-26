@@ -2,7 +2,9 @@ export const COLORS = {
   light: {
     background: "#fffcfc",
     text: "#000000",
+    textBorder: "#000000",
     activeTab: "#ff4d4d",
+    inactiveTab: "#a3a3a3",
     activeTabSoft: "rgba(255,77,77,0.12)",
     card: "#ffffff",
     cardBorder: "#eeeeee",
@@ -11,7 +13,9 @@ export const COLORS = {
   dark: {
     background: "#1c1c1c",
     text: "#FFFFFF",
+    textBorder: "#FFFFFF",
     activeTab: "#ff4d4d",
+    inactiveTab: "#8a8a8a",
     activeTabSoft: "rgba(255,77,77,0.16)",
     card: "#242424",
     cardBorder: "#2f2f2f",
