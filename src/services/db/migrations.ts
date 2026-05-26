@@ -12,6 +12,7 @@ export function runMigrations() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
 
       title TEXT NOT NULL,
+      description TEXT,
       code TEXT NOT NULL,
       language TEXT NOT NULL,
 
@@ -36,6 +37,9 @@ export function runMigrations() {
 
     CREATE INDEX IF NOT EXISTS idx_created_at
     ON snippets(created_at);
+
+    CREATE INDEX IF NOT EXISTS idx_title
+    ON snippets(title);
 
   `)
 }
