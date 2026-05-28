@@ -1,3 +1,4 @@
+import HomeSearchBar from "@/components/HomeSearchBar";
 import SnippetCard from "@/components/SnippetCard";
 import {
   BORDER_RADIUS,
@@ -68,6 +69,11 @@ const AllSnippetsScreen = () => {
         <View style={{ width: ICON_SIZE.xl + SPACING.sm * 2 }} />
       </View>
 
+      <View style={styles.searchWrap}>
+        <HomeSearchBar />
+      </View>
+
+
       <FlatList
         data={snippets}
         keyExtractor={(item) => item.id.toString()}
@@ -102,6 +108,9 @@ const makeStyles = (theme: Theme) =>
       fontFamily: FONT_FAMILY.bold,
       color: theme.text,
       marginHorizontal: SPACING.md,
+    },
+    searchWrap: {
+      marginTop: SPACING.md,
     },
     listContent: {
       paddingTop: SPACING.md,

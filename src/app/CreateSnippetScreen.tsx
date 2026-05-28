@@ -409,7 +409,6 @@ const makeStyles = (theme: Theme) =>
       color: theme.text,
       marginHorizontal: SPACING.md,
     },
-
     scrollContent: {
       paddingVertical: SPACING.lg,
       paddingBottom: SPACING.xxxl,

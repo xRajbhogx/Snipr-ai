@@ -64,7 +64,7 @@ const StatCard = ({ item, theme, styles }: StatCardProps) => {
         router.push('/AllSnippetsScreen');
         break;
       case 'favorites':
-        router.push('/(tabs)/home/FavouritesScreen');
+        router.push('/FavouritesScreen');
         break;
       default:
         // Future routes

@@ -46,6 +46,10 @@ const makeStyles = (theme: Theme) =>
       borderColor: theme.cardBorder,
       paddingHorizontal: SPACING.md,
       paddingVertical: SPACING.sm,
+      elevation: 4,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+      shadowRadius: 6,
     },
     icon: {
       marginRight: SPACING.sm,

@@ -138,7 +138,6 @@ const SnippetDetailScreen = () => {
         {/* Description or AI Summary */}
         {(snippet.description || snippet.ai_summary) && (
           <View style={styles.section}>
-            <Text style={styles.sectionHeader}>Description</Text>
             <Text style={styles.bodyText}>
               {snippet.description || snippet.ai_summary}
             </Text>
