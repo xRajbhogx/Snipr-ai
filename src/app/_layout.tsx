@@ -3,6 +3,7 @@ import { Stack } from "expo-router/stack";
 import { useEffect, useState } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import { ThemeProvider, useThemeContext } from "@/context/ThemeContext";
+import { initializeFileSystem } from "@/services/fileService";
 
 // Prevent the splash screen from auto-hiding before resources are loaded.
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -12,6 +13,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 function RootLayoutContent() {
   const { isThemeLoading } = useThemeContext();
   const [dbReady, setDbReady] = useState(false);
+  const [fsReady, setFsReady] = useState(false);
 
   useEffect(() => {
     try {
@@ -21,15 +23,24 @@ function RootLayoutContent() {
       console.error("Failed to run database migrations:", error);
       setDbReady(true); // Proceed anyway
     }
+
+    initializeFileSystem()
+      .then(() => {
+        setFsReady(true);
+      })
+      .catch((error) => {
+        console.error("Failed to initialize file system:", error);
+        setFsReady(true); // Proceed anyway
+      });
   }, []);
 
   useEffect(() => {
-    if (!isThemeLoading && dbReady) {
+    if (!isThemeLoading && dbReady && fsReady) {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [isThemeLoading, dbReady]);
+  }, [isThemeLoading, dbReady, fsReady]);
 
-  if (isThemeLoading || !dbReady) {
+  if (isThemeLoading || !dbReady || !fsReady) {
     return null;
   }
 

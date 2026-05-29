@@ -10,8 +10,8 @@ import {
 } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { router, useFocusEffect } from "expo-router";
-import React, { useState, useCallback } from "react";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import React, { useState, useCallback, useEffect } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
     useAnimatedStyle,
@@ -19,6 +19,8 @@ import Animated, {
     withTiming,
 } from "react-native-reanimated";
 import { getDashboardStats } from "@/services/db/snippets";
+import { DirectoryType, listFiles } from "@/services/fileService";
+import FileManagementModal from "@/components/FileManagementModal";
 
 type StatItem = {
   key: string;
@@ -42,9 +44,10 @@ type StatCardProps = {
   item: StatItem;
   theme: Theme;
   styles: ReturnType<typeof makeStyles>;
+  onPress: () => void;
 };
 
-const StatCard = ({ item, theme, styles }: StatCardProps) => {
+const StatCard = ({ item, theme, styles, onPress }: StatCardProps) => {
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -58,33 +61,19 @@ const StatCard = ({ item, theme, styles }: StatCardProps) => {
     scale.value = withTiming(1, { duration: 110 });
   };
 
-  const handlePress = () => {
-    switch (item.key) {
-      case 'snippets': 
-        router.push('/AllSnippetsScreen');
-        break;
-      case 'favorites':
-        router.push('/FavouritesScreen');
-        break;
-      default:
-        // Future routes
-        break;
-    }
-  };
-
   return (
     <AnimatedPressable
       accessibilityRole="button"
-      onPress={handlePress}
+      onPress={onPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       style={[styles.card, animatedStyle]}
     >
-        <MaterialCommunityIcons
-          name={item.icon}
-          size={ICON_SIZE.lg}
-          color={theme.activeTab}
-        />
+      <MaterialCommunityIcons
+        name={item.icon}
+        size={ICON_SIZE.lg}
+        color={theme.activeTab}
+      />
       <Text style={styles.cardLabel}>{item.label}</Text>
       <Text style={styles.cardValue}>{item.value}</Text>
     </AnimatedPressable>
@@ -103,15 +92,75 @@ const HomeStatsGrid = () => {
     trash: 0,
   });
 
+  // Modal control states
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedDir, setSelectedDir] = useState<DirectoryType | null>(null);
+
+  const params = useLocalSearchParams<{ openModal?: string }>();
+
+  useEffect(() => {
+    if (params.openModal === "exports" || params.openModal === "files") {
+      setSelectedDir("exports");
+      setModalVisible(true);
+      router.setParams({ openModal: undefined });
+    } else if (params.openModal === "screenshots") {
+      setSelectedDir("images");
+      setModalVisible(true);
+      router.setParams({ openModal: undefined });
+    } else if (params.openModal === "downloads") {
+      setSelectedDir("downloads");
+      setModalVisible(true);
+      router.setParams({ openModal: undefined });
+    }
+  }, [params.openModal]);
+
+  const loadStats = useCallback(async () => {
+    try {
+      const counts = getDashboardStats();
+      
+      // Load file counts from filesystem
+      let exportsCount = 0;
+      let imagesCount = 0;
+      let downloadsCount = 0;
+      
+      try {
+        const exportsList = await listFiles("exports");
+        exportsCount = exportsList.length;
+      } catch (err) {
+        console.error("Error reading exports count:", err);
+      }
+      
+      try {
+        const imagesList = await listFiles("images");
+        imagesCount = imagesList.length;
+      } catch (err) {
+        console.error("Error reading images count:", err);
+      }
+      
+      try {
+        const downloadsList = await listFiles("downloads");
+        downloadsCount = downloadsList.length;
+      } catch (err) {
+        console.error("Error reading downloads count:", err);
+      }
+
+      setStats({
+        snippets: counts.snippets,
+        favorites: counts.favorites,
+        files: exportsCount,
+        screenshots: imagesCount,
+        downloads: downloadsCount,
+        trash: counts.trash,
+      });
+    } catch (error) {
+      console.error("Error loading dashboard stats:", error);
+    }
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
-      try {
-        const counts = getDashboardStats();
-        setStats(counts);
-      } catch (error) {
-        console.error("Error loading dashboard stats:", error);
-      }
-    }, [])
+      loadStats();
+    }, [loadStats])
   );
 
   const getStatValue = (key: string): string => {
@@ -133,16 +182,49 @@ const HomeStatsGrid = () => {
     }
   };
 
+  const handlePressCard = (key: string) => {
+    switch (key) {
+      case "snippets":
+        router.push("/AllSnippetsScreen");
+        break;
+      case "favorites":
+        router.push("/FavouritesScreen");
+        break;
+      case "files":
+        setSelectedDir("exports");
+        setModalVisible(true);
+        break;
+      case "screenshots":
+        setSelectedDir("images");
+        setModalVisible(true);
+        break;
+      case "downloads":
+        setSelectedDir("downloads");
+        setModalVisible(true);
+        break;
+      default:
+        break;
+    }
+  };
+
   return (
     <View style={styles.grid}>
       {STATS_TEMPLATE.map((item) => (
-        <StatCard 
-          key={item.key} 
-          item={{ ...item, value: getStatValue(item.key) }} 
-          theme={theme} 
-          styles={styles} 
+        <StatCard
+          key={item.key}
+          item={{ ...item, value: getStatValue(item.key) }}
+          theme={theme}
+          styles={styles}
+          onPress={() => handlePressCard(item.key)}
         />
       ))}
+
+      <FileManagementModal
+        visible={modalVisible}
+        directory={selectedDir}
+        onClose={() => setModalVisible(false)}
+        onRefreshStats={loadStats}
+      />
     </View>
   );
 };

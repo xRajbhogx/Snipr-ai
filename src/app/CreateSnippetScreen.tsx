@@ -20,6 +20,20 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
+import * as ImagePicker from "expo-image-picker";
+import * as DocumentPicker from "expo-document-picker";
+import Toast from "@/components/Toast";
+import {
+  saveSnippetImage,
+  copyFile,
+  getDirectoryPath,
+  sanitizeFileName,
+  getExtension,
+  isCodeFile,
+  readFile,
+  generateFileName,
+  renameFile,
+} from "@/services/fileService";
 import {
   ActivityIndicator,
   Modal,
@@ -70,6 +84,15 @@ const CreateSnippetScreen = () => {
   // Attachments state
   const [screenshotPath, setScreenshotPath] = useState<string | null>(null);
   const [filePath, setFilePath] = useState<string | null>(null);
+
+  // Toast states
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    setToastVisible(true);
+  };
 
   // Action feedback states
   const [isScanningOcr, setIsScanningOcr] = useState(false);
@@ -193,12 +216,70 @@ const CreateSnippetScreen = () => {
   };
 
   // Attachment Actions
-  const handleAttachScreenshot = () => {
-    setScreenshotPath("simulated_screenshot.png");
+  const handleAttachScreenshot = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        showAlert(
+          "Permission Required",
+          "We need permission to access your photo library to attach a screenshot."
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ["images"],
+        quality: 1,
+        allowsMultipleSelection: false,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const pickedUri = result.assets[0].uri;
+        setIsScanningOcr(true);
+        const storedPath = await saveSnippetImage(pickedUri, title.trim() || undefined);
+        setScreenshotPath(storedPath);
+        showToast("Screenshot attached!");
+      }
+    } catch (error) {
+      console.error("Error picking screenshot:", error);
+      showAlert("Attachment Failed", "An error occurred while picking the screenshot.");
+    } finally {
+      setIsScanningOcr(false);
+    }
   };
 
-  const handleImportFile = () => {
-    setFilePath("simulated_file.json");
+  const handleImportFile = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: "*/*",
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const pickedAsset = result.assets[0];
+        const ext = getExtension(pickedAsset.name) || "txt";
+        const sanitized = sanitizeFileName(pickedAsset.name) || generateFileName(ext, "imported");
+        const destPath = `${getDirectoryPath("exports")}${sanitized}`;
+
+        setIsScanningOcr(true);
+        await copyFile(pickedAsset.uri, destPath);
+        setFilePath(destPath);
+        showToast("File attached successfully!");
+
+        // If it's a code/text file, also pre-populate the editor code field
+        if (isCodeFile(pickedAsset.name)) {
+          const content = await readFile(destPath);
+          if (content.trim()) {
+            setCode(content);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error picking document:", error);
+      showAlert("Import Failed", "An error occurred while importing the file.");
+    } finally {
+      setIsScanningOcr(false);
+    }
   };
 
   // Simulated OCR Scanner
@@ -219,7 +300,7 @@ const CreateSnippetScreen = () => {
   };
 
   // SQLite Save Handler
-  const handleSaveSnippet = () => {
+  const handleSaveSnippet = async () => {
     if (!title.trim()) {
       showAlert("Required Input", "Please enter a title for this snippet.");
       return;
@@ -231,6 +312,16 @@ const CreateSnippetScreen = () => {
 
     try {
       const tagsString = tags.length > 0 ? tags.join(",") : null;
+      let finalScreenshotPath = screenshotPath;
+
+      if (screenshotPath) {
+        try {
+          finalScreenshotPath = await renameFile(screenshotPath, title.trim());
+          setScreenshotPath(finalScreenshotPath);
+        } catch (renameErr) {
+          console.error("Failed to rename screenshot to title:", renameErr);
+        }
+      }
 
       if (isEditing && editId) {
         updateSnippet({
@@ -241,7 +332,7 @@ const CreateSnippetScreen = () => {
           tags: tagsString || undefined,
           description: description.trim() || undefined,
           file_path: filePath || undefined,
-          screenshot_path: screenshotPath || undefined,
+          screenshot_path: finalScreenshotPath || undefined,
         });
       } else {
         createSnippet({
@@ -251,7 +342,7 @@ const CreateSnippetScreen = () => {
           tags: tagsString || undefined,
           description: description.trim() || undefined,
           file_path: filePath || undefined,
-          screenshot_path: screenshotPath || undefined,
+          screenshot_path: finalScreenshotPath || undefined,
         });
       }
 
@@ -591,6 +682,11 @@ const CreateSnippetScreen = () => {
         message={alertConfig.message}
         buttons={alertConfig.buttons}
         onClose={hideAlert}
+      />
+      <Toast
+        visible={toastVisible}
+        message={toastMessage}
+        onHide={() => setToastVisible(false)}
       />
     </Animated.View>
   );
