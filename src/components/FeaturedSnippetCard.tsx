@@ -22,10 +22,21 @@ import Animated, {
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
+const LANGUAGE_ICONS: Record<string, string> = {
+  TypeScript: "language-typescript",
+  JavaScript: "language-javascript",
+  Python: "language-python",
+  Java: "language-java",
+  Go: "language-go",
+  HTML: "language-html5",
+  CSS: "language-css3",
+};
+
 const FeaturedSnippetCard = () => {
   const theme = useTheme();
   const styles = makeStyles(theme);
   const [latestSnippet, setLatestSnippet] = useState<Snippet | null>(null);
+  const iconName = latestSnippet ? (LANGUAGE_ICONS[latestSnippet.language] || "code-tags") : "code-tags";
 
   useFocusEffect(
     useCallback(() => {
@@ -90,7 +101,7 @@ const FeaturedSnippetCard = () => {
       <View style={styles.headerRow}>
         <View style={styles.iconContainer}>
           <MaterialCommunityIcons
-            name="code-brackets"
+            name={iconName as any}
             size={ICON_SIZE.xl}
             color={theme.white}
           />
@@ -115,7 +126,7 @@ const FeaturedSnippetCard = () => {
           {latestSnippet.description}
         </Text>
       ) : (
-        <Text style={styles.descriptionText} numberOfLines={2}>
+        <Text style={[styles.descriptionText, styles.codeTextMonospace]} numberOfLines={2}>
           {latestSnippet.code}
         </Text>
       )}
@@ -204,6 +215,9 @@ const makeStyles = (theme: Theme) =>
       color: theme.mutedText,
       lineHeight: 22,
       marginBottom: SPACING.lg,
+    },
+    codeTextMonospace: {
+      fontFamily: "monospace",
     },
     badgesRow: {
       flexDirection: "row",

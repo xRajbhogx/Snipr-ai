@@ -12,8 +12,8 @@ import { useTheme } from "@/hooks/useTheme";
 import { getSnippetById, toggleFavorite, deleteSnippet } from "@/services/db/snippets";
 import { Snippet } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
+import React, { useCallback, useState } from "react";
 import {
   Alert,
   Pressable,
@@ -31,20 +31,28 @@ const SnippetDetailScreen = () => {
   const styles = makeStyles(theme);
   const [snippet, setSnippet] = useState<Snippet | null>(null);
 
-  // Fetch the snippet based on the ID parameter
-  useEffect(() => {
-    if (id) {
-      try {
-        const data = getSnippetById(Number(id));
-        setSnippet(data);
-      } catch (error) {
-        console.error("Failed to load snippet:", error);
+  // Fetch the snippet based on the ID parameter on screen focus
+  useFocusEffect(
+    useCallback(() => {
+      if (id) {
+        try {
+          const data = getSnippetById(Number(id));
+          setSnippet(data);
+        } catch (error) {
+          console.error("Failed to load snippet:", error);
+        }
       }
-    }
-  }, [id]);
+    }, [id])
+  );
 
   const handleBack = () => {
     router.back();
+  };
+
+  const handleEdit = () => {
+    if (snippet) {
+      router.push(`/CreateSnippetScreen?editId=${snippet.id}`);
+    }
   };
 
   const handleToggleFavorite = () => {
@@ -119,7 +127,13 @@ const SnippetDetailScreen = () => {
         <Text style={styles.headerTitle} numberOfLines={1}>
           {snippet.title}
         </Text>
-        <View style={{ width: ICON_SIZE.xl + SPACING.sm * 2 }} />
+        <Pressable onPress={handleEdit} style={styles.iconButton}>
+          <MaterialCommunityIcons
+            name="pencil"
+            size={ICON_SIZE.xl}
+            color={theme.text}
+          />
+        </Pressable>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>

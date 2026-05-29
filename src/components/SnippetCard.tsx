@@ -21,6 +21,16 @@ import Animated, {
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
+const LANGUAGE_ICONS: Record<string, string> = {
+  TypeScript: "language-typescript",
+  JavaScript: "language-javascript",
+  Python: "language-python",
+  Java: "language-java",
+  Go: "language-go",
+  HTML: "language-html5",
+  CSS: "language-css3",
+};
+
 type SnippetCardProps = {
   snippet: Snippet;
 };
@@ -28,6 +38,7 @@ type SnippetCardProps = {
 const SnippetCard = ({ snippet }: SnippetCardProps) => {
   const theme = useTheme();
   const styles = makeStyles(theme);
+  const iconName = LANGUAGE_ICONS[snippet.language] || "code-tags";
 
   const scale = useSharedValue(1);
 
@@ -53,7 +64,7 @@ const SnippetCard = ({ snippet }: SnippetCardProps) => {
       month: "short",
       day: "numeric",
       year: "numeric",
-    }
+    },
   );
 
   return (
@@ -66,7 +77,7 @@ const SnippetCard = ({ snippet }: SnippetCardProps) => {
       <View style={styles.headerRow}>
         <View style={styles.iconContainer}>
           <MaterialCommunityIcons
-            name="code-brackets"
+            name={iconName as any}
             size={ICON_SIZE.md}
             color={theme.white}
           />
@@ -83,13 +94,23 @@ const SnippetCard = ({ snippet }: SnippetCardProps) => {
 
         {snippet.favorite === 1 && (
           <View style={styles.favoriteBadge}>
-            <MaterialCommunityIcons name="star" size={ICON_SIZE.sm} color={theme.favorite} />
+            <MaterialCommunityIcons
+              name="star"
+              size={ICON_SIZE.sm}
+              color={theme.favorite}
+            />
           </View>
         )}
       </View>
 
-      <View style = {styles.descriptionContainer}>
-        <Text style={styles.descriptionText} numberOfLines={2}>
+      <View style={styles.descriptionContainer}>
+        <Text
+          style={[
+            styles.descriptionText,
+            !snippet.description && styles.codeTextMonospace,
+          ]}
+          numberOfLines={2}
+        >
           {snippet.description || snippet.code}
         </Text>
       </View>
@@ -158,11 +179,11 @@ const makeStyles = (theme: Theme) =>
       borderRadius: BORDER_RADIUS.full,
     },
     descriptionContainer: {
-      // backgroundColor: theme.snippetDescriptionBg, 
-      borderWidth: 1, 
+      // backgroundColor: theme.snippetDescriptionBg,
+      borderWidth: 1,
       borderColor: theme.cardBorder,
-      justifyContent: 'center', 
-      paddingHorizontal: 10, 
+      justifyContent: "center",
+      paddingHorizontal: 10,
       paddingVertical: 5,
       marginBottom: SPACING.sm,
       marginTop: SPACING.sm,
@@ -173,7 +194,9 @@ const makeStyles = (theme: Theme) =>
       fontFamily: FONT_FAMILY.regular,
       color: theme.text,
       lineHeight: 18,
-
+    },
+    codeTextMonospace: {
+      fontFamily: "monospace",
     },
     badgesRow: {
       flexDirection: "row",

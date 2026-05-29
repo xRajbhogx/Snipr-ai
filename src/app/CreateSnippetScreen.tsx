@@ -9,10 +9,10 @@ import {
 } from "@/constants/theme";
 import { useGlobalStyles } from "@/constants/useGlobalStyles";
 import { useTheme } from "@/hooks/useTheme";
-import { createSnippet } from "@/services/db/snippets";
+import { createSnippet, getSnippetById, updateSnippet } from "@/services/db/snippets";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import React, { useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -38,6 +38,9 @@ const CreateSnippetScreen = () => {
   const globalStyles = useGlobalStyles(theme);
   const styles = makeStyles(theme);
 
+  const { editId } = useLocalSearchParams<{ editId?: string }>();
+  const isEditing = !!editId;
+
   // Form state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -53,6 +56,26 @@ const CreateSnippetScreen = () => {
 
   // Action feedback states
   const [isScanningOcr, setIsScanningOcr] = useState(false);
+
+  // Load snippet data if editing
+  useEffect(() => {
+    if (editId) {
+      try {
+        const snippet = getSnippetById(Number(editId));
+        if (snippet) {
+          setTitle(snippet.title);
+          setDescription(snippet.description || "");
+          setSelectedLang(snippet.language);
+          setCode(snippet.code);
+          setTags(snippet.tags ? snippet.tags.split(",") : []);
+          setScreenshotPath(snippet.screenshot_path || null);
+          setFilePath(snippet.file_path || null);
+        }
+      } catch (error) {
+        console.error("Failed to load snippet for editing:", error);
+      }
+    }
+  }, [editId]);
 
   // Line count calculations for the code editor
   const lines = code.split("\n");
@@ -149,19 +172,35 @@ const CreateSnippetScreen = () => {
 
     try {
       const tagsString = tags.length > 0 ? tags.join(",") : null;
-      createSnippet({
-        title: title.trim(),
-        code: code.trim(),
-        language: selectedLang,
-        tags: tagsString || undefined,
-        description: description.trim() || undefined,
-        file_path: filePath || undefined,
-        screenshot_path: screenshotPath || undefined,
-      });
+      
+      if (isEditing && editId) {
+        updateSnippet({
+          id: Number(editId),
+          title: title.trim(),
+          code: code.trim(),
+          language: selectedLang,
+          tags: tagsString || undefined,
+          description: description.trim() || undefined,
+          file_path: filePath || undefined,
+          screenshot_path: screenshotPath || undefined,
+        });
+      } else {
+        createSnippet({
+          title: title.trim(),
+          code: code.trim(),
+          language: selectedLang,
+          tags: tagsString || undefined,
+          description: description.trim() || undefined,
+          file_path: filePath || undefined,
+          screenshot_path: screenshotPath || undefined,
+        });
+      }
 
       Alert.alert(
-        "Snippet Saved",
-        "Your snippet has been written to the database successfully!",
+        isEditing ? "Snippet Updated" : "Snippet Saved",
+        isEditing
+          ? "Your changes have been updated successfully!"
+          : "Your snippet has been written to the database successfully!",
         [
           {
             text: "OK",
@@ -175,7 +214,9 @@ const CreateSnippetScreen = () => {
       console.error("Save error:", error);
       Alert.alert(
         "Database Error",
-        "Unable to save snippet. Please check local database storage.",
+        isEditing
+          ? "Unable to update snippet. Please check local database storage."
+          : "Unable to save snippet. Please check local database storage.",
       );
     }
   };
@@ -196,7 +237,7 @@ const CreateSnippetScreen = () => {
           />
         </Pressable>
         <Text style={styles.headerTitle} numberOfLines={1}>
-          New Snippet
+          {isEditing ? "Edit Snippet" : "New Snippet"}
         </Text>
         <Pressable onPress={handleSaveSnippet} style={styles.saveButton}>
           <Text style={styles.saveButtonText}>Save</Text>
