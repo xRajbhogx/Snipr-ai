@@ -66,12 +66,6 @@ const HomeScreen = () => {
           ))}
         </View>
       )}
-
-      <Button 
-        onPressIn={()=>router.push('/CreateSnippetScreen')}
-        style= {{margin: 20}}> 
-          Add a new snippet
-      </Button>
       </ScrollView>
     </View>
   );

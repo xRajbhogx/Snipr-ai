@@ -23,7 +23,7 @@ import {
   TextInput,
   View,
 } from "react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, { SlideInDown, SlideOutDown } from "react-native-reanimated";
 
 const LANGUAGES = [
   { id: "ts", label: "TypeScript", icon: "language-typescript" },
@@ -181,7 +181,11 @@ const CreateSnippetScreen = () => {
   };
 
   return (
-    <View style={globalStyles.screenContainer}>
+    <Animated.View
+      style={globalStyles.screenContainer}
+      entering={SlideInDown.duration(300)}
+      exiting={SlideOutDown.duration(300)}
+    >
       {/* Header matching SnippetDetailScreen */}
       <View style={[globalStyles.headerRow, styles.header]}>
         <Pressable onPress={() => router.back()} style={styles.iconButton}>
@@ -204,9 +208,8 @@ const CreateSnippetScreen = () => {
         contentContainerStyle={styles.scrollContent}
       >
         {/* Language Selection & Date Metadata Section */}
-        <Animated.View
+        <View
           style={styles.languageSection}
-          entering={FadeInDown.delay(100).duration(400)}
         >
           <View style={styles.metaContainer}>
             <Pressable
@@ -257,10 +260,10 @@ const CreateSnippetScreen = () => {
               ))}
             </View>
           )}
-        </Animated.View>
+        </View>
 
         {/* Title Input matching mainTitle style */}
-        <Animated.View entering={FadeInDown.delay(150).duration(400)}>
+        <View>
           <TextInput
             style={styles.mainTitleInput}
             value={title}
@@ -269,12 +272,11 @@ const CreateSnippetScreen = () => {
             placeholderTextColor={theme.mutedText}
             maxLength={80}
           />
-        </Animated.View>
+        </View>
 
         {/* Description Section */}
-        <Animated.View
+        <View
           style={styles.section}
-          entering={FadeInDown.delay(200).duration(400)}
         >
           <Text style={styles.sectionHeader}>Description</Text>
           <TextInput
@@ -286,12 +288,11 @@ const CreateSnippetScreen = () => {
             placeholderTextColor={theme.mutedText}
             textAlignVertical="top"
           />
-        </Animated.View>
+        </View>
 
         {/* Tags Section */}
-        <Animated.View
+        <View
           style={styles.section}
-          entering={FadeInDown.delay(250).duration(400)}
         >
           <Text style={styles.sectionHeader}>Tags</Text>
           <View style={styles.tagsContainer}>
@@ -324,12 +325,11 @@ const CreateSnippetScreen = () => {
               returnKeyType="done"
             />
           </View>
-        </Animated.View>
+        </View>
 
         {/* Code Section */}
-        <Animated.View
+        <View
           style={styles.section}
-          entering={FadeInDown.delay(300).duration(400)}
         >
           <View style={styles.codeHeaderRow}>
             <Text style={styles.sectionHeader}>Code</Text>
@@ -365,12 +365,11 @@ const CreateSnippetScreen = () => {
               />
             </View>
           </View>
-        </Animated.View>
+        </View>
 
         {/* Attachments Section */}
-        <Animated.View
+        <View
           style={styles.section}
-          entering={FadeInDown.delay(350).duration(400)}
         >
           <Text style={styles.sectionHeader}>Attachments</Text>
 
@@ -464,9 +463,9 @@ const CreateSnippetScreen = () => {
               </Pressable>
             </View>
           )}
-        </Animated.View>
+        </View>
       </ScrollView>
-    </View>
+    </Animated.View>
   );
 };
 
