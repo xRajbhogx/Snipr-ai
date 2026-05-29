@@ -230,7 +230,7 @@ const makeStyles = (theme: Theme) =>
       marginTop: SPACING.md,
     },
     chipsWrap: {
-      marginTop: SPACING.sm,
+      marginTop: SPACING.md,
       marginBottom: SPACING.sm,
     },
     chipsContainer: {

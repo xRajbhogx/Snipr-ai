@@ -14,7 +14,7 @@ import { useTheme } from "@/hooks/useTheme";
 import { getAllSnippets } from "@/services/db/snippets";
 import { Snippet } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
   FlatList,
@@ -22,6 +22,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
 
@@ -42,6 +43,9 @@ const AllSnippetsScreen = () => {
   const [snippets, setSnippets] = useState<Snippet[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
+
+  const { focusSearch } = useLocalSearchParams<{ focusSearch?: string }>();
+  const searchInputRef = React.useRef<TextInput | null>(null);
 
   const availableLanguages = React.useMemo(() => {
     const langs = snippets
@@ -72,10 +76,15 @@ const AllSnippetsScreen = () => {
       try {
         const data = getAllSnippets();
         setSnippets(data);
+        if (focusSearch === "true") {
+          setTimeout(() => {
+            searchInputRef.current?.focus();
+          }, 100);
+        }
       } catch (error) {
         console.error("Failed to load snippets", error);
       }
-    }, [])
+    }, [focusSearch])
   );
 
   const handleBack = () => {
@@ -121,7 +130,7 @@ const AllSnippetsScreen = () => {
       </View>
 
       <View style={styles.searchWrap}>
-        <HomeSearchBar value={searchQuery} onChangeText={setSearchQuery} />
+        <HomeSearchBar ref={searchInputRef} value={searchQuery} onChangeText={setSearchQuery} />
       </View>
 
       {/* Language Chips */}
@@ -199,7 +208,7 @@ const makeStyles = (theme: Theme) =>
       marginTop: SPACING.md,
     },
     chipsWrap: {
-      marginTop: SPACING.sm,
+      marginTop: SPACING.md,
       marginBottom: SPACING.sm,
     },
     chipsContainer: {

@@ -9,36 +9,73 @@ import {
 import { useTheme } from "@/hooks/useTheme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React from "react";
-import { StyleSheet, TextInput, View } from "react-native";
+import { StyleSheet, TextInput, View, Pressable } from "react-native";
 
 interface HomeSearchBarProps {
   value?: string;
   onChangeText?: (text: string) => void;
+  autoFocus?: boolean;
+  editable?: boolean;
+  placeholder?: string;
+  pointerEvents?: "box-none" | "none" | "box-only" | "auto";
 }
 
-const HomeSearchBar = ({ value, onChangeText }: HomeSearchBarProps) => {
-  const theme = useTheme();
-  const styles = makeStyles(theme);
+const HomeSearchBar = React.forwardRef<TextInput, HomeSearchBarProps>(
+  (
+    {
+      value,
+      onChangeText,
+      autoFocus,
+      editable = true,
+      placeholder = "Search snippets, files, or tags",
+      pointerEvents,
+    },
+    ref
+  ) => {
+    const theme = useTheme();
+    const styles = makeStyles(theme);
 
-  return (
-    <View style={styles.container}>
-      <MaterialCommunityIcons
-        name="magnify"
-        size={ICON_SIZE.lg}
-        color={theme.mutedText}
-        style={styles.icon}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Search snippets, files, or tags"
-        placeholderTextColor={theme.mutedText}
-        selectionColor={theme.activeTab}
-        value={value}
-        onChangeText={onChangeText}
-      />
-    </View>
-  );
-};
+    const handleClear = () => {
+      if (onChangeText) {
+        onChangeText("");
+      }
+    };
+
+    return (
+      <View style={styles.container} pointerEvents={pointerEvents}>
+        <MaterialCommunityIcons
+          name="magnify"
+          size={ICON_SIZE.lg}
+          color={theme.mutedText}
+          style={styles.icon}
+        />
+        <TextInput
+          ref={ref}
+          style={styles.input}
+          placeholder={placeholder}
+          placeholderTextColor={theme.mutedText}
+          selectionColor={theme.activeTab}
+          value={value}
+          onChangeText={onChangeText}
+          autoFocus={autoFocus}
+          editable={editable}
+          returnKeyType="search"
+        />
+        {editable && value && value.length > 0 && (
+          <Pressable onPress={handleClear} style={styles.clearButton}>
+            <MaterialCommunityIcons
+              name="close-circle"
+              size={ICON_SIZE.md}
+              color={theme.mutedText}
+            />
+          </Pressable>
+        )}
+      </View>
+    );
+  }
+);
+
+HomeSearchBar.displayName = "HomeSearchBar";
 
 export default HomeSearchBar;
 
@@ -66,5 +103,10 @@ const makeStyles = (theme: Theme) =>
       fontSize: FONT_SIZE.md,
       fontFamily: FONT_FAMILY.medium,
       color: theme.text,
+      padding: 0,
+    },
+    clearButton: {
+      marginLeft: SPACING.xs,
+      padding: SPACING.xs,
     },
   });

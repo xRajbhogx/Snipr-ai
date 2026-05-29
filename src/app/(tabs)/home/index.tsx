@@ -44,9 +44,12 @@ const HomeScreen = () => {
       <View style={[globalStyles.headerRow, styles.headerRow]}>
         <Text style={styles.title}>Snipr-ai</Text>
       </View>
-      <View style={styles.searchWrap}>
-        <HomeSearchBar />
-      </View>
+      <Pressable
+        onPress={() => router.push("/AllSnippetsScreen?focusSearch=true")}
+        style={styles.searchWrap}
+      >
+        <HomeSearchBar editable={false} pointerEvents="none" />
+      </Pressable>
       <HomeStatsGrid />
       
       {recentSnippets.length > 0 && (
