@@ -14,6 +14,7 @@ import { Snippet } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
 import React, { useCallback, useState } from "react";
+import CustomAlert, { CustomAlertButton } from "@/components/CustomAlert";
 import {
   Alert,
   Pressable,
@@ -30,6 +31,36 @@ const SnippetDetailScreen = () => {
   const globalStyles = useGlobalStyles(theme);
   const styles = makeStyles(theme);
   const [snippet, setSnippet] = useState<Snippet | null>(null);
+
+  // Custom Alert configuration state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    buttons: CustomAlertButton[];
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    buttons: [],
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    buttons: CustomAlertButton[] = []
+  ) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      buttons,
+    });
+  };
+
+  const hideAlert = () => {
+    setAlertConfig((prev) => ({ ...prev, visible: false }));
+  };
 
   // Fetch the snippet based on the ID parameter on screen focus
   useFocusEffect(
@@ -72,7 +103,7 @@ const SnippetDetailScreen = () => {
 
   const handleDelete = () => {
     if (!snippet) return;
-    Alert.alert("Delete Snippet", "Are you sure you want to delete this snippet?", [
+    showAlert("Delete Snippet", "Are you sure you want to delete this snippet?", [
       { text: "Cancel", style: "cancel" },
       { 
         text: "Delete", 
@@ -202,6 +233,13 @@ const SnippetDetailScreen = () => {
         </View>
 
       </ScrollView>
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={hideAlert}
+      />
     </View>
   );
 };

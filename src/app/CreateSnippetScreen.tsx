@@ -13,6 +13,7 @@ import { createSnippet, getSnippetById, updateSnippet } from "@/services/db/snip
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
+import CustomAlert, { CustomAlertButton } from "@/components/CustomAlert";
 import {
   ActivityIndicator,
   Alert,
@@ -56,6 +57,36 @@ const CreateSnippetScreen = () => {
 
   // Action feedback states
   const [isScanningOcr, setIsScanningOcr] = useState(false);
+
+  // Custom Alert configuration state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    buttons: CustomAlertButton[];
+  }>({
+    visible: false,
+    title: "",
+    message: "",
+    buttons: [],
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    buttons: CustomAlertButton[] = []
+  ) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      buttons,
+    });
+  };
+
+  const hideAlert = () => {
+    setAlertConfig((prev) => ({ ...prev, visible: false }));
+  };
 
   // Load snippet data if editing
   useEffect(() => {
@@ -122,7 +153,7 @@ const CreateSnippetScreen = () => {
 
   // Paste
   const handlePaste = () => {
-    Alert.alert("Paste action", "Boilerplate pasted from clipboard.");
+    showAlert("Paste Action", "Boilerplate pasted from clipboard.");
     setCode(
       (prev) =>
         (prev ? prev + "\n" : "") +
@@ -149,9 +180,9 @@ const CreateSnippetScreen = () => {
           (prev ? prev + "\n\n" : "") +
           `// Extracted via OCR Scan\nfunction greetUser(name: string) {\n  return \`Hello, \${name}!\`;\n}`,
       );
-      Alert.alert(
+      showAlert(
         "OCR Success",
-        "Code has been successfully scanned and extracted into the editor.",
+        "Code has been successfully scanned and extracted into the editor."
       );
     }, 1500);
   };
@@ -159,13 +190,13 @@ const CreateSnippetScreen = () => {
   // SQLite Save Handler
   const handleSaveSnippet = () => {
     if (!title.trim()) {
-      Alert.alert("Required Input", "Please enter a title for this snippet.");
+      showAlert("Required Input", "Please enter a title for this snippet.");
       return;
     }
     if (!code.trim()) {
-      Alert.alert(
+      showAlert(
         "Required Input",
-        "Please write or paste code before saving.",
+        "Please write or paste code before saving."
       );
       return;
     }
@@ -196,7 +227,7 @@ const CreateSnippetScreen = () => {
         });
       }
 
-      Alert.alert(
+      showAlert(
         isEditing ? "Snippet Updated" : "Snippet Saved",
         isEditing
           ? "Your changes have been updated successfully!"
@@ -208,15 +239,15 @@ const CreateSnippetScreen = () => {
               router.back();
             },
           },
-        ],
+        ]
       );
     } catch (error) {
       console.error("Save error:", error);
-      Alert.alert(
+      showAlert(
         "Database Error",
         isEditing
           ? "Unable to update snippet. Please check local database storage."
-          : "Unable to save snippet. Please check local database storage.",
+          : "Unable to save snippet. Please check local database storage."
       );
     }
   };
@@ -506,6 +537,13 @@ const CreateSnippetScreen = () => {
           )}
         </View>
       </ScrollView>
+      <CustomAlert
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        buttons={alertConfig.buttons}
+        onClose={hideAlert}
+      />
     </Animated.View>
   );
 };

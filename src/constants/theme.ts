@@ -18,6 +18,7 @@ export const COLORS = {
     codeText: "#D4D4D4",
     white: "#FFFFFF",
     snippetDescriptionBg: "#e6e6e6ff",
+    overlay: "rgba(0, 0, 0, 0.5)",
   },
   dark: {
     background: "#1c1c1c",
@@ -38,6 +39,7 @@ export const COLORS = {
     codeText: "#fffb00ff",
     white: "#FFFFFF",
     snippetDescriptionBg: "#1e1e1eff",
+    overlay: "rgba(0, 0, 0, 0.7)",
   },
 };
 export type Theme = typeof COLORS.light;
