@@ -153,7 +153,7 @@ const CreateSnippetScreen = () => {
 
   // Paste
   const handlePaste = () => {
-    showAlert("Paste Action", "Boilerplate pasted from clipboard.");
+    showAlert("Success", "Pasted from clipboard.");
     setCode(
       (prev) =>
         (prev ? prev + "\n" : "") +

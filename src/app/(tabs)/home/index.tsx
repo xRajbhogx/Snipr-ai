@@ -1,3 +1,5 @@
+import CustomAlert from "@/components/CustomAlert";
+import HomeEmptyState from "@/components/HomeEmptyState";
 import HomeSearchBar from "@/components/HomeSearchBar";
 import HomeStatsGrid from "@/components/HomeStatsGrid";
 import SnippetCard from "@/components/SnippetCard";
@@ -10,9 +12,8 @@ import {
 } from "@/constants/theme";
 import { useGlobalStyles } from "@/constants/useGlobalStyles";
 import { useTheme } from "@/hooks/useTheme";
-import { getAllSnippets } from "@/services/db/snippets";
+import { getAllSnippets, seedDemoSnippets } from "@/services/db/snippets";
 import { Snippet } from "@/types";
-import { Button } from "@react-navigation/elements";
 import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -22,17 +23,34 @@ const HomeScreen = () => {
   const globalStyles = useGlobalStyles(theme);
   const styles = makeStyles(theme);
   const [recentSnippets, setRecentSnippets] = useState<Snippet[]>([]);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [alertVisible, setAlertVisible] = useState(false);
+
+  const loadSnippets = useCallback(() => {
+    try {
+      const snippets = getAllSnippets();
+      setRecentSnippets(snippets.slice(0, 3));
+    } catch (error) {
+      console.error("Error fetching recent snippets:", error);
+    }
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
-      try {
-        const snippets = getAllSnippets();
-        setRecentSnippets(snippets.slice(0, 3));
-      } catch (error) {
-        console.error("Error fetching recent snippets:", error);
-      }
-    }, [])
+      loadSnippets();
+    }, [loadSnippets])
   );
+
+  const handleImportStarterSnippets = () => {
+    try {
+      seedDemoSnippets();
+      loadSnippets();
+      setRefreshTrigger((prev) => prev + 1);
+      setAlertVisible(true);
+    } catch (error) {
+      console.error("Failed to seed demo snippets:", error);
+    }
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
@@ -41,32 +59,41 @@ const HomeScreen = () => {
         showsVerticalScrollIndicator={false}
       >
         {/* Header Row */}
-      <View style={[globalStyles.headerRow, styles.headerRow]}>
-        <Text style={styles.title}>Snipr-ai</Text>
-      </View>
-      <Pressable
-        onPress={() => router.push("/AllSnippetsScreen?focusSearch=true")}
-        style={styles.searchWrap}
-      >
-        <HomeSearchBar editable={false} pointerEvents="none" />
-      </Pressable>
-      <HomeStatsGrid />
-      
-      {recentSnippets.length > 0 && (
-        <View style={styles.recentSection}>
-          <View style={styles.recentHeader}>
-            <Text style={styles.recentTitle}>Recent Snippets</Text>
-            <Pressable onPress={() => router.push('/AllSnippetsScreen')}>
-              <Text style={styles.viewAllText}>View All</Text>
-            </Pressable>
-          </View>
-          
-          {recentSnippets.map((snippet) => (
-            <SnippetCard key={snippet.id} snippet={snippet} />
-          ))}
+        <View style={[globalStyles.headerRow, styles.headerRow]}>
+          <Text style={styles.title}>Snipr-ai</Text>
         </View>
-      )}
+        <Pressable
+          onPress={() => router.push("/AllSnippetsScreen?focusSearch=true")}
+          style={styles.searchWrap}
+        >
+          <HomeSearchBar editable={false} pointerEvents="none" />
+        </Pressable>
+        <HomeStatsGrid key={refreshTrigger} />
+        
+        {recentSnippets.length > 0 ? (
+          <View style={styles.recentSection}>
+            <View style={styles.recentHeader}>
+              <Text style={styles.recentTitle}>Recent Snippets</Text>
+              <Pressable onPress={() => router.push('/AllSnippetsScreen')}>
+                <Text style={styles.viewAllText}>View All</Text>
+              </Pressable>
+            </View>
+            
+            {recentSnippets.map((snippet) => (
+              <SnippetCard key={snippet.id} snippet={snippet} />
+            ))}
+          </View>
+        ) : (
+          <HomeEmptyState onImportStarterSnippets={handleImportStarterSnippets} />
+        )}
       </ScrollView>
+
+      <CustomAlert
+        visible={alertVisible}
+        title="Starter Snippets Imported"
+        message="Three developer-oriented starter snippets have been successfully added to your local vault."
+        onClose={() => setAlertVisible(false)}
+      />
     </View>
   );
 };

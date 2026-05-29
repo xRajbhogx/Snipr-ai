@@ -15,6 +15,8 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useLocalSearchParams, useFocusEffect } from "expo-router";
 import React, { useCallback, useState } from "react";
 import CustomAlert, { CustomAlertButton } from "@/components/CustomAlert";
+import Toast from "@/components/Toast";
+import * as Clipboard from "expo-clipboard";
 import {
   Alert,
   Pressable,
@@ -31,6 +33,7 @@ const SnippetDetailScreen = () => {
   const globalStyles = useGlobalStyles(theme);
   const styles = makeStyles(theme);
   const [snippet, setSnippet] = useState<Snippet | null>(null);
+  const [toastVisible, setToastVisible] = useState(false);
 
   // Custom Alert configuration state
   const [alertConfig, setAlertConfig] = useState<{
@@ -114,6 +117,17 @@ const SnippetDetailScreen = () => {
         }
       }
     ]);
+  };
+
+  const handleCopyCode = async () => {
+    if (snippet) {
+      try {
+        await Clipboard.setStringAsync(snippet.code);
+        setToastVisible(true);
+      } catch (error) {
+        console.error("Failed to copy code to clipboard:", error);
+      }
+    }
   };
 
   const handleShare = async () => {
@@ -204,7 +218,15 @@ const SnippetDetailScreen = () => {
         <View style={styles.section}>
           <View style={styles.codeHeaderRow}>
             <Text style={styles.sectionHeader}>Code</Text>
-            <MaterialCommunityIcons name="content-copy" size={ICON_SIZE.md} color={theme.mutedText} />
+            <Pressable
+              onPress={handleCopyCode}
+              style={({ pressed }) => [
+                styles.copyButton,
+                pressed && styles.copyButtonPressed,
+              ]}
+            >
+              <MaterialCommunityIcons name="content-copy" size={ICON_SIZE.md} color={theme.mutedText} />
+            </Pressable>
           </View>
           <View style={styles.codeContainer}>
             <ScrollView showsVerticalScrollIndicator={true} nestedScrollEnabled={true}>
@@ -240,6 +262,11 @@ const SnippetDetailScreen = () => {
         buttons={alertConfig.buttons}
         onClose={hideAlert}
       />
+      <Toast
+        visible={toastVisible}
+        message="Code copied to clipboard!"
+        onHide={() => setToastVisible(false)}
+      />
     </View>
   );
 };
@@ -248,6 +275,16 @@ export default SnippetDetailScreen;
 
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
+    copyButton: {
+      padding: SPACING.xs,
+      borderRadius: BORDER_RADIUS.sm,
+      backgroundColor: theme.tagBg,
+      borderWidth: 1,
+      borderColor: theme.cardBorder,
+    },
+    copyButtonPressed: {
+      opacity: 0.7,
+    },
     centerContent: {
       justifyContent: "center",
       alignItems: "center",

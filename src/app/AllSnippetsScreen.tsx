@@ -1,3 +1,4 @@
+import CustomAlert from "@/components/CustomAlert";
 import HomeSearchBar from "@/components/HomeSearchBar";
 import SnippetCard from "@/components/SnippetCard";
 import {
@@ -11,7 +12,7 @@ import {
 } from "@/constants/theme";
 import { useGlobalStyles } from "@/constants/useGlobalStyles";
 import { useTheme } from "@/hooks/useTheme";
-import { getAllSnippets } from "@/services/db/snippets";
+import { getAllSnippets, deleteAllSnippets } from "@/services/db/snippets";
 import { Snippet } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
@@ -43,9 +44,19 @@ const AllSnippetsScreen = () => {
   const [snippets, setSnippets] = useState<Snippet[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
+  const [alertVisible, setAlertVisible] = useState(false);
 
   const { focusSearch } = useLocalSearchParams<{ focusSearch?: string }>();
   const searchInputRef = React.useRef<TextInput | null>(null);
+
+  const handleDeleteAll = () => {
+    try {
+      deleteAllSnippets();
+      setSnippets([]);
+    } catch (error) {
+      console.error("Failed to delete all snippets", error);
+    }
+  };
 
   const availableLanguages = React.useMemo(() => {
     const langs = snippets
@@ -126,7 +137,29 @@ const AllSnippetsScreen = () => {
         <Text style={styles.headerTitle} numberOfLines={1}>
           All Snippets
         </Text>
-        <View style={{ width: ICON_SIZE.xl + SPACING.sm * 2 }} />
+        {snippets.length > 0 ? (
+          <Pressable
+            onPress={() => setAlertVisible(true)}
+            style={({ pressed }) => [
+              styles.iconButton,
+              pressed && styles.iconButtonPressed,
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="trash-can-outline"
+              size={ICON_SIZE.xl}
+              color={theme.activeTab}
+            />
+          </Pressable>
+        ) : (
+          <View style={styles.placeholderButton}>
+            <MaterialCommunityIcons
+              name="trash-can-outline"
+              size={ICON_SIZE.xl}
+              color={theme.inactiveTab}
+            />
+          </View>
+        )}
       </View>
 
       <View style={styles.searchWrap}>
@@ -177,6 +210,24 @@ const AllSnippetsScreen = () => {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={renderEmpty}
       />
+
+      <CustomAlert
+        visible={alertVisible}
+        title="Delete All Snippets"
+        message="Are you sure you want to delete all snippets? This action is permanent and cannot be undone."
+        onClose={() => setAlertVisible(false)}
+        buttons={[
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "Delete All",
+            style: "destructive",
+            onPress: handleDeleteAll,
+          },
+        ]}
+      />
     </View>
   );
 };
@@ -195,6 +246,15 @@ const makeStyles = (theme: Theme) =>
       padding: SPACING.sm,
       borderRadius: BORDER_RADIUS.full,
       backgroundColor: theme.card,
+    },
+    iconButtonPressed: {
+      opacity: 0.7,
+    },
+    placeholderButton: {
+      padding: SPACING.sm,
+      borderRadius: BORDER_RADIUS.full,
+      backgroundColor: theme.card,
+      opacity: 0.4,
     },
     headerTitle: {
       flex: 1,
