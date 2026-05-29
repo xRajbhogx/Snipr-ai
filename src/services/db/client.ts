@@ -1,8 +1,37 @@
-// This file creates the database connection ONCE.
-// One DB connection shared everywhere(Home, Create, etc)
+// This file creates the database connection ONCE, lazily on first access.
 import * as SQLite from 'expo-sqlite'
 
-const db = SQLite.openDatabaseSync('snipr.db')
-export default db
+let databaseInstance: SQLite.SQLiteDatabase | null = null;
 
-// Every file that imports db from client.ts triggers it!
+export function initDatabase() {
+  if (!databaseInstance) {
+    databaseInstance = SQLite.openDatabaseSync('snipr.db');
+  }
+  return databaseInstance;
+}
+
+export function closeDatabase() {
+  if (databaseInstance) {
+    try {
+      databaseInstance.closeSync();
+    } catch (err) {
+      console.error("Error closing database:", err);
+    }
+    databaseInstance = null;
+  }
+}
+
+// Proxy to delay database initialization until it is actually accessed.
+// This prevents SQLite file locking during module evaluation on startup.
+const dbProxy = new Proxy({} as SQLite.SQLiteDatabase, {
+  get(target, prop) {
+    const instance = initDatabase();
+    const value = Reflect.get(instance, prop);
+    if (typeof value === 'function') {
+      return value.bind(instance);
+    }
+    return value;
+  }
+});
+
+export default dbProxy;

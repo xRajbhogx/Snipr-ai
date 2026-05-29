@@ -7,6 +7,8 @@ import {
   Text,
   View,
   ActivityIndicator,
+  DevSettings,
+  Platform,
 } from "react-native";
 import { useFocusEffect } from "expo-router";
 import Animated, { SlideInDown, SlideOutDown } from "react-native-reanimated";
@@ -26,11 +28,15 @@ import { useGlobalStyles } from "@/constants/useGlobalStyles";
 import { useTheme, useThemePreference } from "@/hooks/useTheme";
 import { useUserPreferences, SortOrder } from "@/hooks/useUserPreferences";
 import { getDashboardStats, seedDemoSnippets, deleteAllSnippets } from "@/services/db/snippets";
-import { getStorageUsage, clearTempFiles, StorageStats } from "@/services/fileService";
+import { getStorageUsage, StorageStats, wipeFileSystem, wipeDatabaseFile } from "@/services/fileService";
+import * as FileSystem from "expo-file-system/legacy";
 import { getDatabaseSize, getCacheSize, clearAppCache, formatBytes } from "@/utils/storage";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { reloadAppAsync } from "expo";
 import CustomAlert, { CustomAlertButton } from "@/components/CustomAlert";
 import Toast from "@/components/Toast";
 import type { ThemePreference } from "@/context/ThemeContext";
+import { closeDatabase } from "@/services/db/client";
 
 const PROFILE_LANGUAGES = [
   { id: "ts", label: "TypeScript", icon: "language-typescript" },
@@ -147,19 +153,7 @@ const ProfileScreen = () => {
     }
   };
 
-  const handleClearTempFiles = async () => {
-    setIsMaintenanceActionLoading(true);
-    try {
-      await clearTempFiles();
-      await loadStatsAndStorage();
-      showToast("Temporary assets cleared!");
-    } catch (error) {
-      console.error("Failed to clear temp files:", error);
-      showAlert("Error", "Failed to clear temporary files.");
-    } finally {
-      setIsMaintenanceActionLoading(false);
-    }
-  };
+
 
   const handleSeedData = () => {
     showAlert(
@@ -206,6 +200,61 @@ const ProfileScreen = () => {
             } catch (error) {
               console.error("Failed to delete snippets:", error);
               showAlert("Error", "Could not clear local database storage.");
+            } finally {
+              setIsMaintenanceActionLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleWipeAllAppData = () => {
+    showAlert(
+      "Wipe All App Data?",
+      "This will permanently delete all snippets, screenshots, custom files, and app preferences. The app will then reload in a completely fresh state. This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Wipe & Restart",
+          style: "destructive",
+          onPress: async () => {
+            setIsMaintenanceActionLoading(true);
+            try {
+              // 1. Write reset pending flag file to trigger startup wipe
+              const resetFileUri = `${FileSystem.documentDirectory}reset_pending`;
+              await FileSystem.writeAsStringAsync(resetFileUri, 'true');
+
+              // 2. Clear AsyncStorage immediately (so UI doesn't lag on restart)
+              await AsyncStorage.clear();
+
+              // Close database explicitly to release the file lock
+              try {
+                closeDatabase();
+              } catch (closeErr) {
+                console.error("Failed to close database before reload:", closeErr);
+              }
+
+              // 3. Reload the app
+              if (Platform.OS === 'web') {
+                window.location.reload();
+              } else if (__DEV__) {
+                DevSettings.reload();
+              } else if (typeof globalThis !== 'undefined' && (globalThis.expo as any)?.reloadAppAsync) {
+                await reloadAppAsync();
+              } else {
+                DevSettings.reload();
+              }
+            } catch (error) {
+              console.error(error);
+              showAlert("Error", "An error occurred. The app will restart now.");
+              setTimeout(() => {
+                if (Platform.OS !== 'web') {
+                  DevSettings.reload();
+                } else {
+                  window.location.reload();
+                }
+              }, 1500);
             } finally {
               setIsMaintenanceActionLoading(false);
             }
@@ -389,6 +438,40 @@ const ProfileScreen = () => {
             </View>
             <Text style={styles.infoValue}>SQLite Local DB</Text>
           </View>
+        </View>
+
+        {/* Danger Zone Section */}
+        <Text style={styles.sectionTitle}>DANGER ZONE</Text>
+        <View style={styles.card}>
+
+
+          {/* Wipe All App Data Row */}
+          <Pressable
+            onPress={handleWipeAllAppData}
+            style={({ pressed }) => [
+              styles.menuRow,
+              pressed && styles.menuRowPressed,
+            ]}
+          >
+            <View style={styles.menuLeft}>
+              <View style={[styles.menuIconBox, { backgroundColor: "rgba(255, 77, 77, 0.12)" }]}>
+                <MaterialCommunityIcons
+                  name="trash-can-outline"
+                  size={ICON_SIZE.md}
+                  color={theme.activeTab}
+                />
+              </View>
+              <View style={styles.menuTexts}>
+                <Text style={[styles.menuTitle, styles.destructiveText]}>Wipe All App Data</Text>
+                <Text style={styles.menuSub}>Clear DB, files, preferences and restart</Text>
+              </View>
+            </View>
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={ICON_SIZE.lg}
+              color={theme.activeTab}
+            />
+          </Pressable>
         </View>
       </ScrollView>
 
@@ -681,14 +764,7 @@ const ProfileScreen = () => {
                 <Text style={styles.infoValue}>{formatBytes(fsStats?.downloadsSize || 0)}</Text>
               </View>
 
-              {/* Temp folder size */}
-              <View style={styles.infoRow}>
-                <View style={styles.infoLeft}>
-                  <MaterialCommunityIcons name="folder-zip-outline" size={ICON_SIZE.md} color={theme.mutedText} />
-                  <Text style={styles.infoText}>Temp Folder Assets</Text>
-                </View>
-                <Text style={styles.infoValue}>{formatBytes(fsStats?.tempSize || 0)}</Text>
-              </View>
+
 
               {/* Cumulative Files Storage size */}
               <View style={[styles.infoRow, styles.totalRow]}>
@@ -725,20 +801,7 @@ const ProfileScreen = () => {
                     <MaterialCommunityIcons name="chevron-right" size={ICON_SIZE.md} color={theme.mutedText} />
                   </Pressable>
 
-                  {/* Clear Temp Folder */}
-                  <Pressable
-                    onPress={handleClearTempFiles}
-                    style={({ pressed }) => [
-                      styles.actionButton,
-                      pressed && styles.actionButtonPressed,
-                    ]}
-                  >
-                    <View style={styles.actionLeft}>
-                      <MaterialCommunityIcons name="delete-sweep-outline" size={ICON_SIZE.md} color={theme.text} />
-                      <Text style={styles.actionText}>Clear Temp Folder Assets</Text>
-                    </View>
-                    <MaterialCommunityIcons name="chevron-right" size={ICON_SIZE.md} color={theme.mutedText} />
-                  </Pressable>
+
 
                   {/* Seed Demo Data */}
                   <Pressable

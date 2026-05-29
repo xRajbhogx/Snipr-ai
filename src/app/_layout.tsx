@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import * as SplashScreen from "expo-splash-screen";
 import { ThemeProvider, useThemeContext } from "@/context/ThemeContext";
 import { initializeFileSystem } from "@/services/fileService";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as FileSystem from "expo-file-system/legacy";
+import { deleteDatabaseSync } from "expo-sqlite";
+import { closeDatabase } from "@/services/db/client";
 
 // Prevent the splash screen from auto-hiding before resources are loaded.
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -16,22 +20,56 @@ function RootLayoutContent() {
   const [fsReady, setFsReady] = useState(false);
 
   useEffect(() => {
-    try {
-      runMigrations();
-      setDbReady(true);
-    } catch (error) {
-      console.error("Failed to run database migrations:", error);
-      setDbReady(true); // Proceed anyway
+    async function initApp() {
+      try {
+        const resetFileUri = `${FileSystem.documentDirectory}reset_pending`;
+        const resetInfo = await FileSystem.getInfoAsync(resetFileUri);
+        if (resetInfo.exists) {
+          // 1. Delete SQLite database natively
+          try {
+            closeDatabase();
+            deleteDatabaseSync('snipr.db');
+          } catch (dbErr) {
+            console.error("Failed to delete database:", dbErr);
+          }
+
+          // 2. Delete SQLite folder in documents directory (just in case)
+          const dbDir = `${FileSystem.documentDirectory}SQLite/`;
+          await FileSystem.deleteAsync(dbDir, { idempotent: true });
+          
+          // 3. Delete Documents directory
+          const docsDir = `${FileSystem.documentDirectory}Documents/`;
+          await FileSystem.deleteAsync(docsDir, { idempotent: true });
+          
+          // 4. Clear AsyncStorage
+          await AsyncStorage.clear();
+          
+          // 5. Delete the reset pending file
+          await FileSystem.deleteAsync(resetFileUri, { idempotent: true });
+        }
+      } catch (e) {
+        console.error(e);
+      }
+
+      // Now run migrations and init file system
+      try {
+        runMigrations();
+        setDbReady(true);
+      } catch (error) {
+        console.error(error);
+        setDbReady(true); // Proceed anyway
+      }
+
+      try {
+        await initializeFileSystem();
+        setFsReady(true);
+      } catch (error) {
+        console.error(error);
+        setFsReady(true); // Proceed anyway
+      }
     }
 
-    initializeFileSystem()
-      .then(() => {
-        setFsReady(true);
-      })
-      .catch((error) => {
-        console.error("Failed to initialize file system:", error);
-        setFsReady(true); // Proceed anyway
-      });
+    initApp();
   }, []);
 
   useEffect(() => {

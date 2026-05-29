@@ -62,6 +62,7 @@ const HomeScreen = () => {
         <View style={[globalStyles.headerRow, styles.headerRow]}>
           <Text style={styles.title}>Snipr-ai</Text>
         </View>
+
         <Pressable
           onPress={() => router.push("/AllSnippetsScreen?focusSearch=true")}
           style={styles.searchWrap}
@@ -86,6 +87,7 @@ const HomeScreen = () => {
         ) : (
           <HomeEmptyState onImportStarterSnippets={handleImportStarterSnippets} />
         )}
+        
       </ScrollView>
 
       <CustomAlert

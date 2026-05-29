@@ -21,17 +21,9 @@ import * as Clipboard from "expo-clipboard";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import * as ImagePicker from "expo-image-picker";
-import * as DocumentPicker from "expo-document-picker";
 import Toast from "@/components/Toast";
 import {
   saveSnippetImage,
-  copyFile,
-  getDirectoryPath,
-  sanitizeFileName,
-  getExtension,
-  isCodeFile,
-  readFile,
-  generateFileName,
   renameFile,
 } from "@/services/fileService";
 import {
@@ -83,7 +75,6 @@ const CreateSnippetScreen = () => {
 
   // Attachments state
   const [screenshotPath, setScreenshotPath] = useState<string | null>(null);
-  const [filePath, setFilePath] = useState<string | null>(null);
 
   // Toast states
   const [toastVisible, setToastVisible] = useState(false);
@@ -139,7 +130,6 @@ const CreateSnippetScreen = () => {
           setCode(snippet.code);
           setTags(snippet.tags ? snippet.tags.split(",") : []);
           setScreenshotPath(snippet.screenshot_path || null);
-          setFilePath(snippet.file_path || null);
         }
       } catch (error) {
         console.error("Failed to load snippet for editing:", error);
@@ -248,39 +238,7 @@ const CreateSnippetScreen = () => {
     }
   };
 
-  const handleImportFile = async () => {
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: "*/*",
-        copyToCacheDirectory: true,
-      });
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
-        const pickedAsset = result.assets[0];
-        const ext = getExtension(pickedAsset.name) || "txt";
-        const sanitized = sanitizeFileName(pickedAsset.name) || generateFileName(ext, "imported");
-        const destPath = `${getDirectoryPath("exports")}${sanitized}`;
-
-        setIsScanningOcr(true);
-        await copyFile(pickedAsset.uri, destPath);
-        setFilePath(destPath);
-        showToast("File attached successfully!");
-
-        // If it's a code/text file, also pre-populate the editor code field
-        if (isCodeFile(pickedAsset.name)) {
-          const content = await readFile(destPath);
-          if (content.trim()) {
-            setCode(content);
-          }
-        }
-      }
-    } catch (error) {
-      console.error("Error picking document:", error);
-      showAlert("Import Failed", "An error occurred while importing the file.");
-    } finally {
-      setIsScanningOcr(false);
-    }
-  };
 
   // Simulated OCR Scanner
   const handleOcrScan = () => {
@@ -331,7 +289,6 @@ const CreateSnippetScreen = () => {
           language: selectedLang,
           tags: tagsString || undefined,
           description: description.trim() || undefined,
-          file_path: filePath || undefined,
           screenshot_path: finalScreenshotPath || undefined,
         });
       } else {
@@ -341,7 +298,6 @@ const CreateSnippetScreen = () => {
           language: selectedLang,
           tags: tagsString || undefined,
           description: description.trim() || undefined,
-          file_path: filePath || undefined,
           screenshot_path: finalScreenshotPath || undefined,
         });
       }
@@ -549,52 +505,28 @@ const CreateSnippetScreen = () => {
         <View style={styles.section}>
           <Text style={styles.sectionHeader}>Attachments</Text>
 
-          {(screenshotPath || filePath) && (
+          {screenshotPath && (
             <View style={styles.previewsContainer}>
-              {screenshotPath && (
-                <View style={styles.previewChip}>
+              <View style={styles.previewChip}>
+                <MaterialCommunityIcons
+                  name="image"
+                  size={ICON_SIZE.sm}
+                  color={theme.activeTab}
+                />
+                <Text style={styles.previewText} numberOfLines={1}>
+                  {screenshotPath.split("/").pop()}
+                </Text>
+                <Pressable
+                  onPress={() => setScreenshotPath(null)}
+                  style={styles.previewDeleteBtn}
+                >
                   <MaterialCommunityIcons
-                    name="image"
+                    name="close-circle"
                     size={ICON_SIZE.sm}
-                    color={theme.activeTab}
+                    color={theme.text}
                   />
-                  <Text style={styles.previewText} numberOfLines={1}>
-                    {screenshotPath.split("/").pop()}
-                  </Text>
-                  <Pressable
-                    onPress={() => setScreenshotPath(null)}
-                    style={styles.previewDeleteBtn}
-                  >
-                    <MaterialCommunityIcons
-                      name="close-circle"
-                      size={ICON_SIZE.sm}
-                      color={theme.text}
-                    />
-                  </Pressable>
-                </View>
-              )}
-              {filePath && (
-                <View style={styles.previewChip}>
-                  <MaterialCommunityIcons
-                    name="file-code-outline"
-                    size={ICON_SIZE.sm}
-                    color={theme.fileIcon}
-                  />
-                  <Text style={styles.previewText} numberOfLines={1}>
-                    {filePath.split("/").pop()}
-                  </Text>
-                  <Pressable
-                    onPress={() => setFilePath(null)}
-                    style={styles.previewDeleteBtn}
-                  >
-                    <MaterialCommunityIcons
-                      name="close-circle"
-                      size={ICON_SIZE.sm}
-                      color={theme.text}
-                    />
-                  </Pressable>
-                </View>
-              )}
+                </Pressable>
+              </View>
             </View>
           )}
 
@@ -617,17 +549,6 @@ const CreateSnippetScreen = () => {
                   color={theme.activeTab}
                 />
                 <Text style={styles.attachmentText}>Screenshot</Text>
-              </Pressable>
-              <Pressable
-                onPress={handleImportFile}
-                style={styles.attachmentBtn}
-              >
-                <MaterialCommunityIcons
-                  name="folder-outline"
-                  size={ICON_SIZE.md}
-                  color={theme.fileIcon}
-                />
-                <Text style={styles.attachmentText}>File</Text>
               </Pressable>
               <Pressable onPress={handleOcrScan} style={styles.attachmentBtn}>
                 <MaterialCommunityIcons

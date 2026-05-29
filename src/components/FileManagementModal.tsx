@@ -571,6 +571,32 @@ const FileRowItem = ({
     minute: "2-digit",
   });
 
+  const extension = item.name.split('.').pop()?.toUpperCase() || 'FILE';
+  const isImg = isImageFile(item.name);
+  const isCode = isCodeFile(item.name);
+
+  // Pill styling based on type
+  const getPillColors = () => {
+    if (isImg) {
+      return {
+        bg: theme.activeTabSoft,
+        text: theme.activeTab
+      };
+    }
+    if (isCode) {
+      return {
+        bg: theme.successSoft,
+        text: theme.success
+      };
+    }
+    return {
+      bg: theme.tagBg,
+      text: theme.mutedText
+    };
+  };
+
+  const colors = getPillColors();
+
   return (
     <AnimatedPressable
       onPress={onPress}
@@ -582,13 +608,18 @@ const FileRowItem = ({
         <MaterialCommunityIcons
           name={getFileIcon(item.name)}
           size={ICON_SIZE.lg}
-          color={isImageFile(item.name) ? theme.activeTab : theme.fileIcon}
+          color={isImg ? theme.activeTab : theme.fileIcon}
         />
       </View>
       <View style={styles.fileDetails}>
-        <Text style={styles.fileName} numberOfLines={1}>
-          {item.name}
-        </Text>
+        <View style={styles.fileNameRow}>
+          <Text style={styles.fileName} numberOfLines={1}>
+            {item.name}
+          </Text>
+          <View style={[styles.typePill, { backgroundColor: colors.bg }]}>
+            <Text style={[styles.typePillText, { color: colors.text }]}>{extension}</Text>
+          </View>
+        </View>
         <Text style={styles.fileMeta}>
           {formatBytes(item.size)} • {dateStr}
         </Text>
@@ -773,7 +804,25 @@ const makeStyles = (theme: Theme) =>
       fontFamily: FONT_FAMILY.semibold,
       fontWeight: FONT_WEIGHT.semibold,
       color: theme.text,
+      flexShrink: 1,
+    },
+    fileNameRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACING.sm,
       marginBottom: SPACING.xs - 2,
+    },
+    typePill: {
+      paddingHorizontal: SPACING.sm,
+      paddingVertical: 2,
+      borderRadius: BORDER_RADIUS.sm,
+      justifyContent: "center",
+      alignItems: "center",
+    },
+    typePillText: {
+      fontSize: 10,
+      fontFamily: FONT_FAMILY.semibold,
+      fontWeight: FONT_WEIGHT.semibold,
     },
     fileMeta: {
       fontSize: FONT_SIZE.sm,

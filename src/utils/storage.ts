@@ -99,3 +99,22 @@ export function formatBytes(bytes: number, decimals = 2): string {
   
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
 }
+
+/**
+ * Deletes the SQLite database file and its directory completely using the expo-file-system next API.
+ */
+export function wipeDatabaseViaFileSystem(): void {
+  try {
+    const dbFile = new File(Paths.document, "SQLite", "snipr.db");
+    if (dbFile.exists) {
+      dbFile.delete();
+    }
+    const dbDir = new Directory(Paths.document, "SQLite");
+    if (dbDir.exists) {
+      dbDir.delete();
+    }
+  } catch (error) {
+    console.error(error);
+    throw error;
+  }
+}

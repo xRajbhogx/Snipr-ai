@@ -19,9 +19,8 @@ import CustomAlert, { CustomAlertButton } from "@/components/CustomAlert";
 import Toast from "@/components/Toast";
 import * as Clipboard from "expo-clipboard";
 import { Image } from "expo-image";
-import { readFile, exportSnippetAsFile } from "@/services/fileService";
+import { exportSnippetAsFile } from "@/services/fileService";
 import {
-  ActivityIndicator,
   Modal,
   Pressable,
   ScrollView,
@@ -42,25 +41,8 @@ const SnippetDetailScreen = () => {
 
   // Attachment Viewer states
   const [isImgPreviewVisible, setIsImgPreviewVisible] = useState(false);
-  const [isFilePreviewVisible, setIsFilePreviewVisible] = useState(false);
-  const [attachedFileContent, setAttachedFileContent] = useState("");
-  const [isFileLoading, setIsFileLoading] = useState(false);
 
-  const handleOpenFileAttachment = async () => {
-    if (!snippet?.file_path) return;
-    setIsFileLoading(true);
-    setIsFilePreviewVisible(true);
-    try {
-      const content = await readFile(snippet.file_path);
-      setAttachedFileContent(content);
-    } catch (error) {
-      console.error("Failed to read attached file:", error);
-      showAlert("Error Reading File", "Unable to load file content from local storage.");
-      setIsFilePreviewVisible(false);
-    } finally {
-      setIsFileLoading(false);
-    }
-  };
+
 
   const handleExportFile = async () => {
     if (!snippet) return;
@@ -341,54 +323,24 @@ const SnippetDetailScreen = () => {
         </View>
 
         {/* Attachments Section */}
-        {(snippet.screenshot_path || snippet.file_path) && (
+        {snippet.screenshot_path && (
           <View style={styles.section}>
             <Text style={styles.sectionHeader}>Attachments</Text>
             <View style={styles.detailAttachmentsContainer}>
-              {snippet.screenshot_path && (
-                <Pressable
-                  onPress={() => setIsImgPreviewVisible(true)}
-                  style={styles.screenshotAttachmentCard}
-                >
-                  <Image
-                    source={snippet.screenshot_path}
-                    style={styles.screenshotThumbnail}
-                    contentFit="cover"
-                  />
-                  <View style={styles.attachmentOverlay}>
-                    <MaterialCommunityIcons name="fullscreen" size={24} color={theme.white} />
-                    <Text style={styles.overlayText}>View Screen</Text>
-                  </View>
-                </Pressable>
-              )}
-              {snippet.file_path && (
-                <Pressable
-                  onPress={handleOpenFileAttachment}
-                  style={({ pressed }) => [
-                    styles.fileAttachmentCard,
-                    pressed && styles.cardPressed,
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name="file-code-outline"
-                    size={ICON_SIZE.xl}
-                    color={theme.fileIcon}
-                  />
-                  <View style={styles.fileCardDetails}>
-                    <Text style={styles.fileCardName} numberOfLines={1}>
-                      {snippet.file_path.split("/").pop()}
-                    </Text>
-                    <Text style={styles.fileCardMeta}>
-                      Code Attachment • Tap to View
-                    </Text>
-                  </View>
-                  <MaterialCommunityIcons
-                    name="chevron-right"
-                    size={ICON_SIZE.lg}
-                    color={theme.text}
-                  />
-                </Pressable>
-              )}
+              <Pressable
+                onPress={() => setIsImgPreviewVisible(true)}
+                style={styles.screenshotAttachmentCard}
+              >
+                <Image
+                  source={snippet.screenshot_path}
+                  style={styles.screenshotThumbnail}
+                  contentFit="cover"
+                />
+                <View style={styles.attachmentOverlay}>
+                  <MaterialCommunityIcons name="fullscreen" size={24} color={theme.white} />
+                  <Text style={styles.overlayText}>View Screen</Text>
+                </View>
+              </Pressable>
             </View>
           </View>
         )}
@@ -453,75 +405,7 @@ const SnippetDetailScreen = () => {
         </Modal>
       )}
 
-      {/* File Content Viewer Modal */}
-      {snippet.file_path && (
-        <Modal
-          visible={isFilePreviewVisible}
-          transparent={true}
-          animationType="slide"
-          onRequestClose={() => setIsFilePreviewVisible(false)}
-        >
-          <View style={styles.fileBackdrop}>
-            <View style={[styles.viewerHeader, styles.fileViewerHeader]}>
-              <Text style={[styles.viewerHeaderTitle, styles.fileViewerTitle]} numberOfLines={1}>
-                {snippet.file_path.split("/").pop()}
-              </Text>
-              <View style={styles.fileViewerActions}>
-                <Pressable
-                  onPress={async () => {
-                    try {
-                      await Clipboard.setStringAsync(attachedFileContent);
-                      setToastMessage("Content copied to clipboard!");
-                      setToastVisible(true);
-                    } catch (err) {
-                      console.error("Failed to copy:", err);
-                    }
-                  }}
-                  style={styles.viewerActionBtn}
-                >
-                  <MaterialCommunityIcons name="content-copy" size={ICON_SIZE.md} color={theme.text} />
-                </Pressable>
-                <Pressable
-                  onPress={async () => {
-                    try {
-                      await Share.share({
-                        message: attachedFileContent,
-                        title: snippet.file_path?.split("/").pop() || "",
-                      });
-                    } catch (err) {
-                      console.error("Failed to share attached file:", err);
-                    }
-                  }}
-                  style={styles.viewerActionBtn}
-                >
-                  <MaterialCommunityIcons name="share-variant" size={ICON_SIZE.md} color={theme.text} />
-                </Pressable>
-                <Pressable
-                  onPress={() => setIsFilePreviewVisible(false)}
-                  style={styles.viewerActionBtn}
-                >
-                  <MaterialCommunityIcons name="close" size={ICON_SIZE.md} color={theme.text} />
-                </Pressable>
-              </View>
-            </View>
-            
-            <View style={styles.fileViewBody}>
-              {isFileLoading ? (
-                <View style={styles.viewerCenter}>
-                  <ActivityIndicator size="large" color={theme.activeTab} />
-                  <Text style={styles.viewerLoadingText}>Loading attachment...</Text>
-                </View>
-              ) : (
-                <ScrollView showsVerticalScrollIndicator={true}>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={true}>
-                    <Text style={styles.fileViewContent}>{attachedFileContent}</Text>
-                  </ScrollView>
-                </ScrollView>
-              )}
-            </View>
-          </View>
-        </Modal>
-      )}
+
     </View>
   );
 };
@@ -695,35 +579,6 @@ const makeStyles = (theme: Theme) =>
       fontFamily: FONT_FAMILY.medium,
       fontWeight: FONT_WEIGHT.medium,
     },
-    fileAttachmentCard: {
-      flexDirection: "row",
-      alignItems: "center",
-      padding: SPACING.md,
-      backgroundColor: theme.card,
-      borderRadius: BORDER_RADIUS.md,
-      borderWidth: 1,
-      borderColor: theme.cardBorder,
-      ...SHADOW.sm,
-    },
-    cardPressed: {
-      opacity: 0.8,
-    },
-    fileCardDetails: {
-      flex: 1,
-      marginLeft: SPACING.md,
-    },
-    fileCardName: {
-      fontSize: FONT_SIZE.md - 1,
-      fontFamily: FONT_FAMILY.semibold,
-      fontWeight: FONT_WEIGHT.semibold,
-      color: theme.text,
-      marginBottom: SPACING.xs - 2,
-    },
-    fileCardMeta: {
-      fontSize: FONT_SIZE.sm,
-      fontFamily: FONT_FAMILY.regular,
-      color: theme.mutedText,
-    },
     imgBackdrop: {
       flex: 1,
       backgroundColor: "#000000e0",
@@ -759,54 +614,5 @@ const makeStyles = (theme: Theme) =>
       padding: SPACING.sm,
       borderRadius: BORDER_RADIUS.full,
       backgroundColor: "rgba(255,255,255,0.2)",
-    },
-    fileBackdrop: {
-      flex: 1,
-      backgroundColor: theme.background,
-      justifyContent: "flex-end",
-    },
-    fileViewerHeader: {
-      backgroundColor: theme.card,
-      borderBottomWidth: 1,
-      borderBottomColor: theme.cardBorder,
-      paddingTop: 50,
-      paddingBottom: SPACING.md,
-    },
-    fileViewerTitle: {
-      color: theme.text,
-    },
-    fileViewerActions: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: SPACING.sm,
-    },
-    viewerActionBtn: {
-      padding: SPACING.sm,
-      borderRadius: BORDER_RADIUS.md,
-      backgroundColor: theme.tagBg,
-      borderWidth: 1,
-      borderColor: theme.cardBorder,
-    },
-    fileViewBody: {
-      flex: 1,
-      backgroundColor: theme.codeBg,
-      padding: SPACING.md,
-    },
-    viewerCenter: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    viewerLoadingText: {
-      marginTop: SPACING.md,
-      color: theme.mutedText,
-      fontSize: FONT_SIZE.md,
-      fontFamily: FONT_FAMILY.medium,
-    },
-    fileViewContent: {
-      fontFamily: "monospace",
-      fontSize: FONT_SIZE.sm,
-      color: theme.codeText,
-      lineHeight: 22,
     },
   });

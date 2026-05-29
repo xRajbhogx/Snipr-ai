@@ -8,18 +8,17 @@ export type CreateSnippetParams = {
   language: string;
   tags?: string;
   description?: string;
-  file_path?: string;
   screenshot_path?: string;
   ai_summary?: string;
 };
 
 export function createSnippet(params: CreateSnippetParams) {
-  const { title, code, language, tags, description, file_path, screenshot_path, ai_summary } = params;
+  const { title, code, language, tags, description, screenshot_path, ai_summary } = params;
   
   const result = db.runSync(
-    `INSERT INTO snippets (title, code, language, tags, description, file_path, screenshot_path, ai_summary) 
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [title, code, language, tags || null, description || null, file_path || null, screenshot_path || null, ai_summary || null]
+    `INSERT INTO snippets (title, code, language, tags, description, screenshot_path, ai_summary) 
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [title, code, language, tags || null, description || null, screenshot_path || null, ai_summary || null]
   );
   
   return result.lastInsertRowId;
@@ -44,13 +43,13 @@ export type UpdateSnippetParams = CreateSnippetParams & { id: number };
 
 
 export function updateSnippet(params: UpdateSnippetParams) {
-  const { id, title, code, language, tags, description, file_path, screenshot_path, ai_summary } = params;
+  const { id, title, code, language, tags, description, screenshot_path, ai_summary } = params;
   db.runSync(
     `UPDATE snippets SET 
       title=?, code=?, language=?, tags=?, description=?, 
-      file_path=?, screenshot_path=?, ai_summary=?, updated_at=unixepoch() 
+      screenshot_path=?, ai_summary=?, updated_at=unixepoch() 
      WHERE id=?`,
-    [title, code, language, tags || null, description || null, file_path || null, screenshot_path || null, ai_summary || null, id]
+    [title, code, language, tags || null, description || null, screenshot_path || null, ai_summary || null, id]
   );
 }
 

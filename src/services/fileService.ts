@@ -599,3 +599,28 @@ export async function renameFile(oldPath: string, newBaseName: string): Promise<
     throw new FileOperationError('renameFile', oldPath, error);
   }
 }
+
+/**
+ * Deletes the entire Documents directory and recreates the initial directory structure.
+ */
+export async function wipeFileSystem(): Promise<void> {
+  try {
+    await FileSystem.deleteAsync(DOCUMENTS_DIR, { idempotent: true });
+    await initializeFileSystem();
+  } catch (error) {
+    throw new FileOperationError('wipeFileSystem', DOCUMENTS_DIR, error);
+  }
+}
+
+/**
+ * Deletes the SQLite database folder completely.
+ */
+export async function wipeDatabaseFile(): Promise<void> {
+  try {
+    const dbDir = `${FileSystem.documentDirectory}SQLite/`;
+    await FileSystem.deleteAsync(dbDir, { idempotent: true });
+  } catch (error) {
+    throw new FileOperationError('wipeDatabaseFile', 'SQLite', error);
+  }
+}
+
