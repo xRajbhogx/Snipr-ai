@@ -11,7 +11,12 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, TextInput, View } from "react-native";
 
-const HomeSearchBar = () => {
+interface HomeSearchBarProps {
+  value?: string;
+  onChangeText?: (text: string) => void;
+}
+
+const HomeSearchBar = ({ value, onChangeText }: HomeSearchBarProps) => {
   const theme = useTheme();
   const styles = makeStyles(theme);
 
@@ -28,6 +33,8 @@ const HomeSearchBar = () => {
         placeholder="Search snippets, files, or tags"
         placeholderTextColor={theme.mutedText}
         selectionColor={theme.activeTab}
+        value={value}
+        onChangeText={onChangeText}
       />
     </View>
   );

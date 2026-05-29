@@ -312,6 +312,8 @@ const makeStyles = (theme: Theme) =>
       padding: SPACING.md,
       borderRadius: BORDER_RADIUS.lg,
       maxHeight: 350,
+      borderWidth: 1,
+      borderColor: theme.cardBorder,
       ...SHADOW.sm,
     },
     codeText: {

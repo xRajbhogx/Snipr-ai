@@ -5,6 +5,7 @@ import {
   FONT_FAMILY,
   FONT_SIZE,
   ICON_SIZE,
+  SHADOW,
   SPACING,
   Theme,
 } from "@/constants/theme";
@@ -18,16 +19,53 @@ import React, { useCallback, useState } from "react";
 import {
   FlatList,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
+
+const LANGUAGE_ICONS: Record<string, string> = {
+  TypeScript: "language-typescript",
+  JavaScript: "language-javascript",
+  Python: "language-python",
+  Java: "language-java",
+  Go: "language-go",
+  HTML: "language-html5",
+  CSS: "language-css3",
+};
 
 const AllSnippetsScreen = () => {
   const theme = useTheme();
   const globalStyles = useGlobalStyles(theme);
   const styles = makeStyles(theme);
   const [snippets, setSnippets] = useState<Snippet[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
+
+  const availableLanguages = React.useMemo(() => {
+    const langs = snippets
+      .map((s) => s.language)
+      .filter((lang): lang is string => typeof lang === "string" && lang.trim().length > 0);
+    return ["All", ...Array.from(new Set(langs))];
+  }, [snippets]);
+
+  const filteredSnippets = React.useMemo(() => {
+    return snippets.filter((snippet) => {
+      const matchesLanguage =
+        !selectedLanguage || selectedLanguage === "All" || snippet.language === selectedLanguage;
+      
+      const matchesSearch =
+        !searchQuery ||
+        snippet.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (snippet.description &&
+          snippet.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (snippet.code && snippet.code.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (snippet.tags && snippet.tags.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      return matchesLanguage && matchesSearch;
+    });
+  }, [snippets, selectedLanguage, searchQuery]);
 
   useFocusEffect(
     useCallback(() => {
@@ -44,13 +82,26 @@ const AllSnippetsScreen = () => {
     router.back();
   };
 
-  const renderEmpty = () => (
-    <View style={styles.emptyContainer}>
-      <MaterialCommunityIcons name="code-tags" size={ICON_SIZE.xl * 2} color={theme.inactiveTab} />
-      <Text style={styles.emptyTitle}>No snippets found</Text>
-      <Text style={styles.emptySubtext}>{"You haven't created any snippets yet."}</Text>
-    </View>
-  );
+  const renderEmpty = () => {
+    const hasAnySnippets = snippets.length > 0;
+    return (
+      <View style={styles.emptyContainer}>
+        <MaterialCommunityIcons
+          name={hasAnySnippets ? "text-search-variant" : "code-tags"}
+          size={ICON_SIZE.xl * 2}
+          color={theme.inactiveTab}
+        />
+        <Text style={styles.emptyTitle}>
+          {hasAnySnippets ? "No match found" : "No snippets found"}
+        </Text>
+        <Text style={styles.emptySubtext}>
+          {hasAnySnippets
+            ? "Try adjusting your search or language filter."
+            : "You haven't created any snippets yet."}
+        </Text>
+      </View>
+    );
+  };
 
   return (
     <View style={globalStyles.screenContainer}>
@@ -70,12 +121,47 @@ const AllSnippetsScreen = () => {
       </View>
 
       <View style={styles.searchWrap}>
-        <HomeSearchBar />
+        <HomeSearchBar value={searchQuery} onChangeText={setSearchQuery} />
       </View>
 
+      {/* Language Chips */}
+      {availableLanguages.length > 1 && (
+        <View style={styles.chipsWrap}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chipsContainer}
+          >
+            {availableLanguages.map((lang) => {
+              const isSelected =
+                (!selectedLanguage && lang === "All") || selectedLanguage === lang;
+              const iconName = LANGUAGE_ICONS[lang] || "code-tags";
+              return (
+                <Pressable
+                  key={lang}
+                  onPress={() => setSelectedLanguage(lang === "All" ? null : lang)}
+                  style={[styles.chip, isSelected && styles.chipActive]}
+                >
+                  {lang !== "All" && (
+                    <MaterialCommunityIcons
+                      name={iconName as any}
+                      size={14}
+                      color={isSelected ? theme.white : theme.mutedText}
+                      style={styles.chipIcon}
+                    />
+                  )}
+                  <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
+                    {lang}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
 
       <FlatList
-        data={snippets}
+        data={filteredSnippets}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => <SnippetCard snippet={item} />}
         contentContainerStyle={styles.listContent}
@@ -111,6 +197,42 @@ const makeStyles = (theme: Theme) =>
     },
     searchWrap: {
       marginTop: SPACING.md,
+    },
+    chipsWrap: {
+      marginTop: SPACING.sm,
+      marginBottom: SPACING.sm,
+    },
+    chipsContainer: {
+      flexDirection: "row",
+      paddingVertical: SPACING.xs,
+    },
+    chip: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: theme.card,
+      borderColor: theme.cardBorder,
+      borderWidth: 1,
+      paddingHorizontal: SPACING.md,
+      paddingVertical: SPACING.xs,
+      borderRadius: BORDER_RADIUS.full,
+      marginRight: SPACING.sm,
+      ...SHADOW.sm,
+    },
+    chipActive: {
+      backgroundColor: theme.activeTab,
+      borderColor: theme.activeTab,
+    },
+    chipIcon: {
+      marginRight: 4,
+    },
+    chipText: {
+      fontSize: FONT_SIZE.sm,
+      fontFamily: FONT_FAMILY.medium,
+      color: theme.mutedText,
+    },
+    chipTextActive: {
+      color: theme.white,
+      fontFamily: FONT_FAMILY.semibold,
     },
     listContent: {
       paddingTop: SPACING.md,

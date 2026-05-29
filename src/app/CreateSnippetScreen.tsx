@@ -9,21 +9,21 @@ import {
 } from "@/constants/theme";
 import { useGlobalStyles } from "@/constants/useGlobalStyles";
 import { useTheme } from "@/hooks/useTheme";
+import { createSnippet } from "@/services/db/snippets";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
-  Alert,
-  ActivityIndicator,
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
-import { createSnippet } from "@/services/db/snippets";
 
 const LANGUAGES = [
   { id: "ts", label: "TypeScript", icon: "language-typescript" },
@@ -56,7 +56,10 @@ const CreateSnippetScreen = () => {
 
   // Line count calculations for the code editor
   const lines = code.split("\n");
-  const lineNumbers = Array.from({ length: Math.max(lines.length, 1) }, (_, i) => i + 1);
+  const lineNumbers = Array.from(
+    { length: Math.max(lines.length, 1) },
+    (_, i) => i + 1,
+  );
 
   // Current Date display matching SnippetDetailScreen
   const currentDate = new Date().toLocaleDateString(undefined, {
@@ -97,7 +100,11 @@ const CreateSnippetScreen = () => {
   // Paste
   const handlePaste = () => {
     Alert.alert("Paste action", "Boilerplate pasted from clipboard.");
-    setCode((prev) => (prev ? prev + "\n" : "") + `// Pasted code\nconsole.log("Hello, World!");`);
+    setCode(
+      (prev) =>
+        (prev ? prev + "\n" : "") +
+        `// Pasted code\nconsole.log("Hello, World!");`,
+    );
   };
 
   // Attachment Actions
@@ -114,11 +121,15 @@ const CreateSnippetScreen = () => {
     setIsScanningOcr(true);
     setTimeout(() => {
       setIsScanningOcr(false);
-      setCode((prev) => 
-        (prev ? prev + "\n\n" : "") + 
-        `// Extracted via OCR Scan\nfunction greetUser(name: string) {\n  return \`Hello, \${name}!\`;\n}`
+      setCode(
+        (prev) =>
+          (prev ? prev + "\n\n" : "") +
+          `// Extracted via OCR Scan\nfunction greetUser(name: string) {\n  return \`Hello, \${name}!\`;\n}`,
       );
-      Alert.alert("OCR Success", "Code has been successfully scanned and extracted into the editor.");
+      Alert.alert(
+        "OCR Success",
+        "Code has been successfully scanned and extracted into the editor.",
+      );
     }, 1500);
   };
 
@@ -129,7 +140,10 @@ const CreateSnippetScreen = () => {
       return;
     }
     if (!code.trim()) {
-      Alert.alert("Required Input", "Please write or paste code before saving.");
+      Alert.alert(
+        "Required Input",
+        "Please write or paste code before saving.",
+      );
       return;
     }
 
@@ -145,17 +159,24 @@ const CreateSnippetScreen = () => {
         screenshot_path: screenshotPath || undefined,
       });
 
-      Alert.alert("Snippet Saved", "Your snippet has been written to the database successfully!", [
-        {
-          text: "OK",
-          onPress: () => {
-            router.back();
+      Alert.alert(
+        "Snippet Saved",
+        "Your snippet has been written to the database successfully!",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              router.back();
+            },
           },
-        },
-      ]);
+        ],
+      );
     } catch (error) {
       console.error("Save error:", error);
-      Alert.alert("Database Error", "Unable to save snippet. Please check local database storage.");
+      Alert.alert(
+        "Database Error",
+        "Unable to save snippet. Please check local database storage.",
+      );
     }
   };
 
@@ -174,16 +195,19 @@ const CreateSnippetScreen = () => {
           New Snippet
         </Text>
         <Pressable onPress={handleSaveSnippet} style={styles.saveButton}>
-          <Text style={styles.saveButtonText}>
-            Save
-          </Text>
+          <Text style={styles.saveButtonText}>Save</Text>
         </Pressable>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
         {/* Language Selection & Date Metadata Section */}
-        <Animated.View style={styles.languageSection} entering={FadeInDown.delay(100).duration(400)}>
+        <Animated.View
+          style={styles.languageSection}
+          entering={FadeInDown.delay(100).duration(400)}
+        >
           <View style={styles.metaContainer}>
             <Pressable
               onPress={() => setShowLangDropdown(!showLangDropdown)}
@@ -213,15 +237,20 @@ const CreateSnippetScreen = () => {
                     setShowLangDropdown(false);
                   }}
                 >
-                  <MaterialCommunityIcons 
-                    name={lang.icon as any} 
-                    size={ICON_SIZE.md} 
-                    color={selectedLang === lang.label ? theme.activeTab : theme.text} 
+                  <MaterialCommunityIcons
+                    name={lang.icon as any}
+                    size={ICON_SIZE.md}
+                    color={
+                      selectedLang === lang.label ? theme.activeTab : theme.text
+                    }
                   />
-                  <Text style={[
-                    styles.dropdownItemText,
-                    selectedLang === lang.label && styles.dropdownItemTextActive
-                  ]}>
+                  <Text
+                    style={[
+                      styles.dropdownItemText,
+                      selectedLang === lang.label &&
+                        styles.dropdownItemTextActive,
+                    ]}
+                  >
                     {lang.label}
                   </Text>
                 </Pressable>
@@ -243,7 +272,10 @@ const CreateSnippetScreen = () => {
         </Animated.View>
 
         {/* Description Section */}
-        <Animated.View style={styles.section} entering={FadeInDown.delay(200).duration(400)}>
+        <Animated.View
+          style={styles.section}
+          entering={FadeInDown.delay(200).duration(400)}
+        >
           <Text style={styles.sectionHeader}>Description</Text>
           <TextInput
             style={styles.bodyInput}
@@ -257,14 +289,24 @@ const CreateSnippetScreen = () => {
         </Animated.View>
 
         {/* Tags Section */}
-        <Animated.View style={styles.section} entering={FadeInDown.delay(250).duration(400)}>
+        <Animated.View
+          style={styles.section}
+          entering={FadeInDown.delay(250).duration(400)}
+        >
           <Text style={styles.sectionHeader}>Tags</Text>
           <View style={styles.tagsContainer}>
             {tags.map((tag, index) => (
               <View key={index} style={styles.tagChip}>
                 <Text style={styles.tagText}>#{tag}</Text>
-                <Pressable onPress={() => handleRemoveTag(index)} style={styles.tagCloseBtn}>
-                  <MaterialCommunityIcons name="close" size={14} color={theme.text} />
+                <Pressable
+                  onPress={() => handleRemoveTag(index)}
+                  style={styles.tagCloseBtn}
+                >
+                  <MaterialCommunityIcons
+                    name="close"
+                    size={14}
+                    color={theme.text}
+                  />
                 </Pressable>
               </View>
             ))}
@@ -273,7 +315,11 @@ const CreateSnippetScreen = () => {
               value={tagInput}
               onChangeText={handleTagInputChange}
               onSubmitEditing={handleAddTag}
-              placeholder={tags.length === 0 ? "Add tags (space/comma separated)..." : "Add tag..."}
+              placeholder={
+                tags.length === 0
+                  ? "Add tags (space/comma separated)..."
+                  : "Add tag..."
+              }
               placeholderTextColor={theme.mutedText}
               returnKeyType="done"
             />
@@ -281,19 +327,28 @@ const CreateSnippetScreen = () => {
         </Animated.View>
 
         {/* Code Section */}
-        <Animated.View style={styles.section} entering={FadeInDown.delay(300).duration(400)}>
+        <Animated.View
+          style={styles.section}
+          entering={FadeInDown.delay(300).duration(400)}
+        >
           <View style={styles.codeHeaderRow}>
             <Text style={styles.sectionHeader}>Code</Text>
             <Pressable onPress={handlePaste} style={styles.pasteButton}>
-              <MaterialCommunityIcons name="clipboard-outline" size={ICON_SIZE.md} color={theme.activeTab} />
+              <MaterialCommunityIcons
+                name="clipboard-outline"
+                size={ICON_SIZE.md}
+                color={theme.activeTab}
+              />
               <Text style={styles.pasteButtonText}>Paste</Text>
             </Pressable>
           </View>
           <View style={styles.codeContainer}>
             <View style={styles.codeBody}>
               <View style={styles.lineNumbers}>
-                {lineNumbers.map(n => (
-                  <Text key={n} style={styles.lineNumberText}>{n}</Text>
+                {lineNumbers.map((n) => (
+                  <Text key={n} style={styles.lineNumberText}>
+                    {n}
+                  </Text>
                 ))}
               </View>
               <TextInput
@@ -313,30 +368,55 @@ const CreateSnippetScreen = () => {
         </Animated.View>
 
         {/* Attachments Section */}
-        <Animated.View style={styles.section} entering={FadeInDown.delay(350).duration(400)}>
+        <Animated.View
+          style={styles.section}
+          entering={FadeInDown.delay(350).duration(400)}
+        >
           <Text style={styles.sectionHeader}>Attachments</Text>
-          
+
           {(screenshotPath || filePath) && (
             <View style={styles.previewsContainer}>
               {screenshotPath && (
                 <View style={styles.previewChip}>
-                  <MaterialCommunityIcons name="image" size={ICON_SIZE.sm} color={theme.activeTab} />
+                  <MaterialCommunityIcons
+                    name="image"
+                    size={ICON_SIZE.sm}
+                    color={theme.activeTab}
+                  />
                   <Text style={styles.previewText} numberOfLines={1}>
-                    {screenshotPath.split('/').pop()}
+                    {screenshotPath.split("/").pop()}
                   </Text>
-                  <Pressable onPress={() => setScreenshotPath(null)} style={styles.previewDeleteBtn}>
-                    <MaterialCommunityIcons name="close-circle" size={16} color={theme.text} />
+                  <Pressable
+                    onPress={() => setScreenshotPath(null)}
+                    style={styles.previewDeleteBtn}
+                  >
+                    <MaterialCommunityIcons
+                      name="close-circle"
+                      size={16}
+                      color={theme.text}
+                    />
                   </Pressable>
                 </View>
               )}
               {filePath && (
                 <View style={styles.previewChip}>
-                  <MaterialCommunityIcons name="file-code-outline" size={ICON_SIZE.sm} color="#F5A623" />
+                  <MaterialCommunityIcons
+                    name="file-code-outline"
+                    size={ICON_SIZE.sm}
+                    color="#F5A623"
+                  />
                   <Text style={styles.previewText} numberOfLines={1}>
-                    {filePath.split('/').pop()}
+                    {filePath.split("/").pop()}
                   </Text>
-                  <Pressable onPress={() => setFilePath(null)} style={styles.previewDeleteBtn}>
-                    <MaterialCommunityIcons name="close-circle" size={16} color={theme.text} />
+                  <Pressable
+                    onPress={() => setFilePath(null)}
+                    style={styles.previewDeleteBtn}
+                  >
+                    <MaterialCommunityIcons
+                      name="close-circle"
+                      size={16}
+                      color={theme.text}
+                    />
                   </Pressable>
                 </View>
               )}
@@ -346,26 +426,45 @@ const CreateSnippetScreen = () => {
           {isScanningOcr ? (
             <View style={styles.ocrLoadingContainer}>
               <ActivityIndicator color={theme.activeTab} size="small" />
-              <Text style={styles.ocrLoadingText}>Scanning image & extracting code...</Text>
+              <Text style={styles.ocrLoadingText}>
+                Scanning image & extracting code...
+              </Text>
             </View>
           ) : (
             <View style={styles.attachmentsRow}>
-              <Pressable onPress={handleAttachScreenshot} style={styles.attachmentBtn}>
-                <MaterialCommunityIcons name="image-outline" size={ICON_SIZE.md} color={theme.activeTab} />
+              <Pressable
+                onPress={handleAttachScreenshot}
+                style={styles.attachmentBtn}
+              >
+                <MaterialCommunityIcons
+                  name="image-outline"
+                  size={ICON_SIZE.md}
+                  color={theme.activeTab}
+                />
                 <Text style={styles.attachmentText}>Screenshot</Text>
               </Pressable>
-              <Pressable onPress={handleImportFile} style={styles.attachmentBtn}>
-                <MaterialCommunityIcons name="folder-outline" size={ICON_SIZE.md} color="#F5A623" />
+              <Pressable
+                onPress={handleImportFile}
+                style={styles.attachmentBtn}
+              >
+                <MaterialCommunityIcons
+                  name="folder-outline"
+                  size={ICON_SIZE.md}
+                  color="#F5A623"
+                />
                 <Text style={styles.attachmentText}>File</Text>
               </Pressable>
               <Pressable onPress={handleOcrScan} style={styles.attachmentBtn}>
-                <MaterialCommunityIcons name="line-scan" size={ICON_SIZE.md} color="#7ED321" />
+                <MaterialCommunityIcons
+                  name="line-scan"
+                  size={ICON_SIZE.md}
+                  color="#7ED321"
+                />
                 <Text style={styles.attachmentText}>OCR Scan</Text>
               </Pressable>
             </View>
           )}
         </Animated.View>
-
       </ScrollView>
     </View>
   );
@@ -478,7 +577,7 @@ const makeStyles = (theme: Theme) =>
       color: theme.text,
       marginBottom: SPACING.xl,
       padding: 0,
-      marginTop: SPACING.sm
+      marginTop: SPACING.sm,
     },
     section: {
       marginBottom: SPACING.xl,
@@ -489,17 +588,24 @@ const makeStyles = (theme: Theme) =>
       color: theme.text,
       marginBottom: SPACING.sm,
       backgroundColor: theme.cardBorder,
-      paddingHorizontal: SPACING.sm,
-      borderRadius: BORDER_RADIUS.sm
+      paddingHorizontal: SPACING.md,
+      paddingVertical: SPACING.xs,
+      borderRadius: BORDER_RADIUS.sm,
+      alignSelf: "flex-start",
     },
     bodyInput: {
       fontSize: FONT_SIZE.md,
       fontFamily: FONT_FAMILY.regular,
       color: theme.text,
       lineHeight: 24,
-      minHeight: 80,
+      minHeight: 100,
       textAlignVertical: "top",
-      padding: 0,
+      padding: SPACING.md,
+      backgroundColor: theme.card,
+      borderWidth: 1,
+      borderColor: theme.cardBorder,
+      borderRadius: BORDER_RADIUS.md,
+      ...SHADOW.sm,
     },
     tagsContainer: {
       flexDirection: "row",
@@ -507,7 +613,12 @@ const makeStyles = (theme: Theme) =>
       gap: SPACING.sm,
       marginBottom: SPACING.xl,
       alignItems: "center",
-      
+      backgroundColor: theme.card,
+      borderWidth: 1,
+      borderColor: theme.cardBorder,
+      borderRadius: BORDER_RADIUS.md,
+      padding: SPACING.md,
+      ...SHADOW.sm,
     },
     tagChip: {
       backgroundColor: theme.tagBg,
@@ -523,7 +634,6 @@ const makeStyles = (theme: Theme) =>
       color: theme.text,
       fontSize: FONT_SIZE.sm,
       fontFamily: FONT_FAMILY.medium,
-      
     },
     tagCloseBtn: {
       justifyContent: "center",
@@ -540,10 +650,7 @@ const makeStyles = (theme: Theme) =>
       flexDirection: "row",
       justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: SPACING.xs,
-      backgroundColor: theme.cardBorder,
-      paddingHorizontal: SPACING.sm,
-      borderRadius: BORDER_RADIUS.sm
+      marginBottom: SPACING.sm,
     },
     pasteButton: {
       flexDirection: "row",
@@ -563,6 +670,8 @@ const makeStyles = (theme: Theme) =>
       backgroundColor: theme.codeBg,
       borderRadius: BORDER_RADIUS.lg,
       maxHeight: 350,
+      borderWidth: 1,
+      borderColor: theme.cardBorder,
       ...SHADOW.sm,
       overflow: "hidden",
     },
@@ -655,5 +764,4 @@ const makeStyles = (theme: Theme) =>
       fontSize: FONT_SIZE.sm,
       marginTop: SPACING.sm,
     },
-
   });

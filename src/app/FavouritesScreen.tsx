@@ -5,6 +5,7 @@ import {
   FONT_FAMILY,
   FONT_SIZE,
   ICON_SIZE,
+  SHADOW,
   SPACING,
   Theme,
 } from "@/constants/theme";
@@ -18,6 +19,7 @@ import React, { useCallback, useState } from "react";
 import {
   FlatList,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -28,12 +30,24 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+const LANGUAGE_ICONS: Record<string, string> = {
+  TypeScript: "language-typescript",
+  JavaScript: "language-javascript",
+  Python: "language-python",
+  Java: "language-java",
+  Go: "language-go",
+  HTML: "language-html5",
+  CSS: "language-css3",
+};
+
 const FavouritesScreen = () => {
   const theme = useTheme();
   const globalStyles = useGlobalStyles(theme);
   const styles = makeStyles(theme);
   
   const [favourites, setFavourites] = useState<Snippet[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
   
   const emptyOpacity = useSharedValue(0);
   const emptyTranslateY = useSharedValue(20);
@@ -42,6 +56,41 @@ const FavouritesScreen = () => {
     opacity: emptyOpacity.value,
     transform: [{ translateY: emptyTranslateY.value }],
   }));
+
+  const availableLanguages = React.useMemo(() => {
+    const langs = favourites
+      .map((s) => s.language)
+      .filter((lang): lang is string => typeof lang === "string" && lang.trim().length > 0);
+    return ["All", ...Array.from(new Set(langs))];
+  }, [favourites]);
+
+  const filteredFavourites = React.useMemo(() => {
+    return favourites.filter((snippet) => {
+      const matchesLanguage =
+        !selectedLanguage || selectedLanguage === "All" || snippet.language === selectedLanguage;
+      
+      const matchesSearch =
+        !searchQuery ||
+        snippet.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (snippet.description &&
+          snippet.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (snippet.code && snippet.code.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (snippet.tags && snippet.tags.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      return matchesLanguage && matchesSearch;
+    });
+  }, [favourites, selectedLanguage, searchQuery]);
+
+  const filteredCount = filteredFavourites.length;
+
+  React.useEffect(() => {
+    if (filteredCount === 0) {
+      emptyOpacity.value = 0;
+      emptyTranslateY.value = 20;
+      emptyOpacity.value = withTiming(1, { duration: 400 });
+      emptyTranslateY.value = withTiming(0, { duration: 400 });
+    }
+  }, [filteredCount, emptyOpacity, emptyTranslateY]);
 
   useFocusEffect(
     useCallback(() => {
@@ -64,19 +113,26 @@ const FavouritesScreen = () => {
     router.back();
   };
 
-  const renderEmpty = () => (
-    <Animated.View style={[styles.emptyContainer, animatedEmptyStyle]}>
-      <MaterialCommunityIcons
-        name="star-outline"
-        size={ICON_SIZE.xl * 2}
-        color={theme.inactiveTab}
-      />
-      <Text style={styles.emptyTitle}>No Favourites Yet</Text>
-      <Text style={styles.emptySubtext}>
-        Tap the star icon on any snippet to save it here.
-      </Text>
-    </Animated.View>
-  );
+  const renderEmpty = () => {
+    const hasAnyFavourites = favourites.length > 0;
+    return (
+      <Animated.View style={[styles.emptyContainer, animatedEmptyStyle]}>
+        <MaterialCommunityIcons
+          name={hasAnyFavourites ? "text-search-variant" : "star-outline"}
+          size={ICON_SIZE.xl * 2}
+          color={theme.inactiveTab}
+        />
+        <Text style={styles.emptyTitle}>
+          {hasAnyFavourites ? "No match found" : "No Favourites Yet"}
+        </Text>
+        <Text style={styles.emptySubtext}>
+          {hasAnyFavourites
+            ? "Try adjusting your search or language filter."
+            : "Tap the star icon on any snippet to save it here."}
+        </Text>
+      </Animated.View>
+    );
+  };
 
   return (
     <View style={globalStyles.screenContainer}>
@@ -96,11 +152,47 @@ const FavouritesScreen = () => {
       </View>
 
       <View style={styles.searchWrap}>
-        <HomeSearchBar />
+        <HomeSearchBar value={searchQuery} onChangeText={setSearchQuery} />
       </View>
 
+      {/* Language Chips */}
+      {availableLanguages.length > 1 && (
+        <View style={styles.chipsWrap}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chipsContainer}
+          >
+            {availableLanguages.map((lang) => {
+              const isSelected =
+                (!selectedLanguage && lang === "All") || selectedLanguage === lang;
+              const iconName = LANGUAGE_ICONS[lang] || "code-tags";
+              return (
+                <Pressable
+                  key={lang}
+                  onPress={() => setSelectedLanguage(lang === "All" ? null : lang)}
+                  style={[styles.chip, isSelected && styles.chipActive]}
+                >
+                  {lang !== "All" && (
+                    <MaterialCommunityIcons
+                      name={iconName as any}
+                      size={14}
+                      color={isSelected ? theme.white : theme.mutedText}
+                      style={styles.chipIcon}
+                    />
+                  )}
+                  <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
+                    {lang}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+      )}
+
       <FlatList
-        data={favourites}
+        data={filteredFavourites}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => <SnippetCard snippet={item} />}
         contentContainerStyle={styles.listContent}
@@ -136,6 +228,42 @@ const makeStyles = (theme: Theme) =>
     },
     searchWrap: {
       marginTop: SPACING.md,
+    },
+    chipsWrap: {
+      marginTop: SPACING.sm,
+      marginBottom: SPACING.sm,
+    },
+    chipsContainer: {
+      flexDirection: "row",
+      paddingVertical: SPACING.xs,
+    },
+    chip: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: theme.card,
+      borderColor: theme.cardBorder,
+      borderWidth: 1,
+      paddingHorizontal: SPACING.md,
+      paddingVertical: SPACING.xs,
+      borderRadius: BORDER_RADIUS.full,
+      marginRight: SPACING.sm,
+      ...SHADOW.sm,
+    },
+    chipActive: {
+      backgroundColor: theme.activeTab,
+      borderColor: theme.activeTab,
+    },
+    chipIcon: {
+      marginRight: 4,
+    },
+    chipText: {
+      fontSize: FONT_SIZE.sm,
+      fontFamily: FONT_FAMILY.medium,
+      color: theme.mutedText,
+    },
+    chipTextActive: {
+      color: theme.white,
+      fontFamily: FONT_FAMILY.semibold,
     },
     listContent: {
       paddingTop: SPACING.md,
