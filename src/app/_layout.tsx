@@ -5,7 +5,11 @@ import { useEffect } from "react";
 export default function RootLayout() {
   
   useEffect(() => {
-    runMigrations()
+    try {
+      runMigrations();
+    } catch (error) {
+      console.error("Failed to run database migrations:", error);
+    }
   }, []);
 
   return (

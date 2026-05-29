@@ -188,6 +188,87 @@ def read_root():
 }`,
       tags: "utils,performance,debounce,typescript",
       ai_summary: "TypeScript implementation of debounce utility to throttle function executions using setTimeout."
+    },
+    {
+      title: "SQLite Database Manager Service",
+      description: "A singleton class to manage SQLite connection, tables, indices, and CRUD operations for developer utility apps.",
+      language: "TypeScript",
+      code: `import * as SQLite from 'expo-sqlite';
+
+export class DatabaseManager {
+  private db: SQLite.SQLiteDatabase;
+  private static instance: DatabaseManager | null = null;
+
+  private constructor() {
+    this.db = SQLite.openDatabaseSync('vault.db');
+    this.initialize();
+  }
+
+  public static getInstance(): DatabaseManager {
+    if (!DatabaseManager.instance) {
+      DatabaseManager.instance = new DatabaseManager();
+    }
+    return DatabaseManager.instance;
+  }
+
+  private initialize() {
+    try {
+      this.db.execSync(\`
+        CREATE TABLE IF NOT EXISTS snippets (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT NOT NULL,
+          code TEXT NOT NULL,
+          language TEXT NOT NULL,
+          created_at INTEGER DEFAULT (unixepoch())
+        );
+      \`);
+      console.log("Database tables initialized successfully.");
+    } catch (error) {
+      console.error("Database initialization failed:", error);
+      throw error;
+    }
+  }
+
+  public getAll(language?: string) {
+    try {
+      if (language) {
+        return this.db.getAllSync(
+          'SELECT * FROM snippets WHERE language = ? ORDER BY created_at DESC',
+          [language]
+        );
+      }
+      return this.db.getAllSync('SELECT * FROM snippets ORDER BY created_at DESC');
+    } catch (error) {
+      console.error("Failed to query snippets:", error);
+      return [];
+    }
+  }
+
+  public create(title: string, code: string, language: string): number {
+    try {
+      const result = this.db.runSync(
+        'INSERT INTO snippets (title, code, language) VALUES (?, ?, ?)',
+        [title, code, language]
+      );
+      return result.lastInsertRowId;
+    } catch (error) {
+      console.error("Failed to insert snippet:", error);
+      throw error;
+    }
+  }
+
+  public delete(id: number): boolean {
+    try {
+      this.db.runSync('DELETE FROM snippets WHERE id = ?', [id]);
+      return true;
+    } catch (error) {
+      console.error(\`Failed to delete snippet with id \${id}:\`, error);
+      return false;
+    }
+  }
+}`,
+      tags: "sqlite,db,typescript,singleton,backend",
+      ai_summary: "A robust TypeScript singleton pattern implementing SQLite database creation and general CRUD helpers."
     }
   ];
 

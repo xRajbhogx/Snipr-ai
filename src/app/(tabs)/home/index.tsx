@@ -91,7 +91,7 @@ const HomeScreen = () => {
       <CustomAlert
         visible={alertVisible}
         title="Starter Snippets Imported"
-        message="Three developer-oriented starter snippets have been successfully added to your local vault."
+        message="Four developer-oriented starter snippets have been successfully added to your local vault."
         onClose={() => setAlertVisible(false)}
       />
     </View>

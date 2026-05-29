@@ -53,14 +53,14 @@ const CustomAlert = ({
     >
       {/* Backdrop overlay */}
       <Animated.View
-        entering={FadeIn.duration(200)}
-        exiting={FadeOut.duration(150)}
+        entering={FadeIn.duration(170)}
+        exiting={FadeOut.duration(120)}
         style={styles.backdrop}
       >
         {/* Alert container */}
         <Animated.View
-          entering={FadeIn.duration(220)}
-          exiting={FadeOut.duration(180)}
+          entering={FadeIn.duration(150)}
+          exiting={FadeOut.duration(120)}
           style={styles.alertContainer}
         >
           <Text style={styles.titleText}>{title}</Text>

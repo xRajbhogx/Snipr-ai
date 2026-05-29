@@ -112,8 +112,16 @@ const SnippetDetailScreen = () => {
         text: "Delete", 
         style: "destructive", 
         onPress: () => {
-          deleteSnippet(snippet.id);
-          router.back();
+          try {
+            deleteSnippet(snippet.id);
+            router.back();
+          } catch (error) {
+            console.error("Failed to delete snippet:", error);
+            showAlert(
+              "Database Error",
+              "Unable to delete snippet. Please check local database storage."
+            );
+          }
         }
       }
     ]);
@@ -218,15 +226,55 @@ const SnippetDetailScreen = () => {
         <View style={styles.section}>
           <View style={styles.codeHeaderRow}>
             <Text style={styles.sectionHeader}>Code</Text>
-            <Pressable
-              onPress={handleCopyCode}
-              style={({ pressed }) => [
-                styles.copyButton,
-                pressed && styles.copyButtonPressed,
-              ]}
-            >
-              <MaterialCommunityIcons name="content-copy" size={ICON_SIZE.md} color={theme.mutedText} />
-            </Pressable>
+            <View style={styles.codeActionRow}>
+              {/* Copy */}
+              <Pressable
+                onPress={handleCopyCode}
+                style={({ pressed }) => [
+                  styles.copyButton,
+                  pressed && styles.copyButtonPressed,
+                ]}
+              >
+                <MaterialCommunityIcons name="content-copy" size={ICON_SIZE.md} color={theme.mutedText} />
+              </Pressable>
+
+              {/* Share */}
+              <Pressable
+                onPress={handleShare}
+                style={({ pressed }) => [
+                  styles.copyButton,
+                  pressed && styles.copyButtonPressed,
+                ]}
+              >
+                <MaterialCommunityIcons name="share-variant" size={ICON_SIZE.md} color={theme.mutedText} />
+              </Pressable>
+
+              {/* Favorite */}
+              <Pressable
+                onPress={handleToggleFavorite}
+                style={({ pressed }) => [
+                  styles.copyButton,
+                  pressed && styles.copyButtonPressed,
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name={snippet.favorite ? "star" : "star-outline"}
+                  size={ICON_SIZE.md}
+                  color={snippet.favorite ? theme.favorite : theme.mutedText}
+                />
+              </Pressable>
+
+              {/* Delete */}
+              <Pressable
+                onPress={handleDelete}
+                style={({ pressed }) => [
+                  styles.copyButton,
+                  pressed && styles.copyButtonPressed,
+                ]}
+              >
+                <MaterialCommunityIcons name="delete-outline" size={ICON_SIZE.md} color={theme.activeTab} />
+              </Pressable>
+            </View>
           </View>
           <View style={styles.codeContainer}>
             <ScrollView showsVerticalScrollIndicator={true} nestedScrollEnabled={true}>
@@ -234,23 +282,6 @@ const SnippetDetailScreen = () => {
                 <Text style={styles.codeText}>{snippet.code}</Text>
               </ScrollView>
             </ScrollView>
-          </View>
-
-          {/* Bottom Actions */}
-          <View style={styles.bottomActionsRow}>
-            <Pressable onPress={handleShare} style={styles.iconButtonSmall}>
-              <MaterialCommunityIcons name="share-variant" size={ICON_SIZE.lg} color={theme.text} />
-            </Pressable>
-            <Pressable onPress={handleDelete} style={styles.iconButtonSmall}>
-              <MaterialCommunityIcons name="delete-outline" size={ICON_SIZE.lg} color={theme.activeTab} />
-            </Pressable>
-            <Pressable onPress={handleToggleFavorite} style={styles.iconButtonSmall}>
-              <MaterialCommunityIcons
-                name={snippet.favorite ? "star" : "star-outline"}
-                size={ICON_SIZE.lg}
-                color={snippet.favorite ? theme.favorite : theme.text}
-              />
-            </Pressable>
           </View>
         </View>
 
@@ -300,20 +331,13 @@ const makeStyles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "space-between",
     },
-    bottomActionsRow: {
+    codeActionRow: {
       flexDirection: "row",
-      justifyContent: "flex-end",
       alignItems: "center",
-      marginTop: SPACING.md,
       gap: SPACING.sm,
     },
     iconButton: {
       padding: SPACING.sm,
-      borderRadius: BORDER_RADIUS.full,
-      backgroundColor: theme.card,
-    },
-    iconButtonSmall: {
-      padding: 6,
       borderRadius: BORDER_RADIUS.full,
       backgroundColor: theme.card,
     },
