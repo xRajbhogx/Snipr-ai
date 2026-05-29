@@ -177,11 +177,6 @@ const CreateSnippetScreen = () => {
           <Text style={styles.saveButtonText}>
             Save
           </Text>
-          {/* <MaterialCommunityIcons
-            name="check"
-            size={ICON_SIZE.xl}
-            color={theme.activeTab}
-          /> */}
         </Pressable>
       </View>
 
