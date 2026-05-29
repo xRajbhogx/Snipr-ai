@@ -12,7 +12,7 @@ import {
 } from "@/constants/theme";
 import { useGlobalStyles } from "@/constants/useGlobalStyles";
 import { useTheme } from "@/hooks/useTheme";
-import { getAllSnippets, deleteAllSnippets } from "@/services/db/snippets";
+import { getAllSnippets, deleteAllSnippets, seedDemoSnippets } from "@/services/db/snippets";
 import { Snippet } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
@@ -45,9 +45,21 @@ const AllSnippetsScreen = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
   const [alertVisible, setAlertVisible] = useState(false);
+  const [successAlertVisible, setSuccessAlertVisible] = useState(false);
 
   const { focusSearch } = useLocalSearchParams<{ focusSearch?: string }>();
   const searchInputRef = React.useRef<TextInput | null>(null);
+
+  const handleSeed = () => {
+    try {
+      seedDemoSnippets();
+      const data = getAllSnippets();
+      setSnippets(data);
+      setSuccessAlertVisible(true);
+    } catch (error) {
+      console.error("Failed to seed starter snippets in AllSnippetsScreen:", error);
+    }
+  };
 
   const handleDeleteAll = () => {
     try {
@@ -119,6 +131,40 @@ const AllSnippetsScreen = () => {
             ? "Try adjusting your search or language filter."
             : "You haven't created any snippets yet."}
         </Text>
+        {/* CTA Buttons */}
+        <View style={styles.actionContainer}>
+          <Pressable
+            onPress={() => router.push("/CreateSnippetScreen")}
+            style={({ pressed }) => [
+              styles.primaryButton,
+              pressed && styles.buttonPressed,
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="plus"
+              size={18}
+              color={theme.white}
+              style={styles.buttonIcon}
+            />
+            <Text style={styles.primaryButtonText}>Create First Snippet</Text>
+          </Pressable>
+        
+          <Pressable
+            onPress={handleSeed}
+            style={({ pressed }) => [
+              styles.secondaryButton,
+              pressed && styles.buttonPressed,
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="database-import-outline"
+              size={18}
+              color={theme.text}
+              style={styles.buttonIcon}
+            />
+            <Text style={styles.secondaryButtonText}>Import Starter Snippets</Text>
+          </Pressable>
+        </View>
       </View>
     );
   };
@@ -228,6 +274,13 @@ const AllSnippetsScreen = () => {
           },
         ]}
       />
+
+      <CustomAlert
+        visible={successAlertVisible}
+        title="Starter Snippets Imported"
+        message="Four developer-oriented starter snippets have been successfully added to your local vault."
+        onClose={() => setSuccessAlertVisible(false)}
+      />
     </View>
   );
 };
@@ -324,5 +377,45 @@ const makeStyles = (theme: Theme) =>
       fontFamily: FONT_FAMILY.regular,
       color: theme.mutedText,
       marginTop: SPACING.sm,
+    },
+    actionContainer: {
+      width: "100%",
+      gap: SPACING.sm,
+      marginTop: SPACING.lg,
+    },
+    primaryButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: theme.activeTab,
+      paddingVertical: SPACING.md,
+      borderRadius: BORDER_RADIUS.md,
+      ...SHADOW.sm,
+    },
+    primaryButtonText: {
+      fontSize: FONT_SIZE.sm + 2,
+      fontFamily: FONT_FAMILY.semibold,
+      color: theme.white,
+    },
+    secondaryButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: theme.tagBg,
+      borderColor: theme.cardBorder,
+      borderWidth: 1,
+      paddingVertical: SPACING.md,
+      borderRadius: BORDER_RADIUS.md,
+    },
+    secondaryButtonText: {
+      fontSize: FONT_SIZE.sm + 2,
+      fontFamily: FONT_FAMILY.semibold,
+      color: theme.text,
+    },
+    buttonPressed: {
+      opacity: 0.85,
+    },
+    buttonIcon: {
+      marginRight: SPACING.xs,
     },
   });
