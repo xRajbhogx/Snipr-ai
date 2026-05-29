@@ -1,3 +1,4 @@
+import CustomAlert, { CustomAlertButton } from "@/components/CustomAlert";
 import {
   BORDER_RADIUS,
   FONT_FAMILY,
@@ -8,21 +9,26 @@ import {
   Theme,
 } from "@/constants/theme";
 import { useGlobalStyles } from "@/constants/useGlobalStyles";
+import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { useTheme } from "@/hooks/useTheme";
-import { createSnippet, getSnippetById, updateSnippet } from "@/services/db/snippets";
+import {
+  createSnippet,
+  getSnippetById,
+  updateSnippet,
+} from "@/services/db/snippets";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as Clipboard from "expo-clipboard";
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
-import CustomAlert, { CustomAlertButton } from "@/components/CustomAlert";
 import {
   ActivityIndicator,
-  Alert,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  View,
+  View
 } from "react-native";
 import Animated, { SlideInDown, SlideOutDown } from "react-native-reanimated";
 
@@ -32,6 +38,13 @@ const LANGUAGES = [
   { id: "py", label: "Python", icon: "language-python" },
   { id: "java", label: "Java", icon: "language-java" },
   { id: "go", label: "Go", icon: "language-go" },
+  { id: "kt", label: "Kotlin", icon: "language-kotlin" },
+  { id: "swift", label: "Swift", icon: "language-swift" },
+  { id: "cs", label: "C#", icon: "language-csharp" },
+  { id: "cpp", label: "C++", icon: "language-cpp" },
+  { id: "rs", label: "Rust", icon: "language-rust" },
+  { id: "rb", label: "Ruby", icon: "language-ruby" },
+  { id: "php", label: "PHP", icon: "language-php" },
 ];
 
 const CreateSnippetScreen = () => {
@@ -42,9 +55,12 @@ const CreateSnippetScreen = () => {
   const { editId } = useLocalSearchParams<{ editId?: string }>();
   const isEditing = !!editId;
 
+  const { preferences } = useUserPreferences();
+
   // Form state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  // Default to persisted preference; overridden when editing an existing snippet
   const [selectedLang, setSelectedLang] = useState("TypeScript");
   const [showLangDropdown, setShowLangDropdown] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
@@ -74,7 +90,7 @@ const CreateSnippetScreen = () => {
   const showAlert = (
     title: string,
     message: string,
-    buttons: CustomAlertButton[] = []
+    buttons: CustomAlertButton[] = [],
   ) => {
     setAlertConfig({
       visible: true,
@@ -105,15 +121,18 @@ const CreateSnippetScreen = () => {
       } catch (error) {
         console.error("Failed to load snippet for editing:", error);
       }
+    } else {
+      // Apply the user's saved default language when creating a new snippet
+      setSelectedLang(preferences.defaultLanguage);
     }
-  }, [editId]);
+  }, [editId, preferences.defaultLanguage]);
 
   // Line count calculations for the code editor
-  const lines = code.split("\n");
-  const lineNumbers = Array.from(
-    { length: Math.max(lines.length, 1) },
+  const lineCount = Math.max(code.split("\n").length, 1);
+  const lineNumbersText = Array.from(
+    { length: lineCount },
     (_, i) => i + 1,
-  );
+  ).join("\n");
 
   // Current Date display matching SnippetDetailScreen
   const currentDate = new Date().toLocaleDateString(undefined, {
@@ -152,13 +171,25 @@ const CreateSnippetScreen = () => {
   };
 
   // Paste
-  const handlePaste = () => {
-    showAlert("Success", "Pasted from clipboard.");
-    setCode(
-      (prev) =>
-        (prev ? prev + "\n" : "") +
-        `// Pasted code\nconsole.log("Hello, World!");`,
-    );
+  const handlePaste = async () => {
+    try {
+      const text = await Clipboard.getStringAsync();
+      if (text.trim()) {
+        setCode((prev) => (prev ? prev + "\n" + text : text));
+        showAlert("Success", "Pasted from clipboard.");
+      } else {
+        showAlert(
+          "Clipboard Empty",
+          "There is no text in your clipboard to paste.",
+        );
+      }
+    } catch (error) {
+      console.error("Failed to read from clipboard:", error);
+      showAlert(
+        "Paste Failed",
+        "Unable to access clipboard. Please check app permissions.",
+      );
+    }
   };
 
   // Attachment Actions
@@ -182,7 +213,7 @@ const CreateSnippetScreen = () => {
       );
       showAlert(
         "OCR Success",
-        "Code has been successfully scanned and extracted into the editor."
+        "Code has been successfully scanned and extracted into the editor.",
       );
     }, 1500);
   };
@@ -194,16 +225,13 @@ const CreateSnippetScreen = () => {
       return;
     }
     if (!code.trim()) {
-      showAlert(
-        "Required Input",
-        "Please write or paste code before saving."
-      );
+      showAlert("Required Input", "Please write or paste code before saving.");
       return;
     }
 
     try {
       const tagsString = tags.length > 0 ? tags.join(",") : null;
-      
+
       if (isEditing && editId) {
         updateSnippet({
           id: Number(editId),
@@ -239,7 +267,7 @@ const CreateSnippetScreen = () => {
               router.back();
             },
           },
-        ]
+        ],
       );
     } catch (error) {
       console.error("Save error:", error);
@@ -247,7 +275,7 @@ const CreateSnippetScreen = () => {
         "Database Error",
         isEditing
           ? "Unable to update snippet. Please check local database storage."
-          : "Unable to save snippet. Please check local database storage."
+          : "Unable to save snippet. Please check local database storage.",
       );
     }
   };
@@ -280,9 +308,7 @@ const CreateSnippetScreen = () => {
         contentContainerStyle={styles.scrollContent}
       >
         {/* Language Selection & Date Metadata Section */}
-        <View
-          style={styles.languageSection}
-        >
+        <View style={styles.languageSection}>
           <View style={styles.metaContainer}>
             <Pressable
               onPress={() => setShowLangDropdown(!showLangDropdown)}
@@ -292,7 +318,7 @@ const CreateSnippetScreen = () => {
                 <Text style={styles.languageText}>{selectedLang}</Text>
                 <MaterialCommunityIcons
                   name="chevron-down"
-                  size={14}
+                  size={ICON_SIZE.xs}
                   color={theme.activeTab}
                   style={styles.chevronIcon}
                 />
@@ -302,35 +328,68 @@ const CreateSnippetScreen = () => {
           </View>
 
           {showLangDropdown && (
-            <View style={styles.dropdownMenu}>
-              {LANGUAGES.map((lang) => (
-                <Pressable
-                  key={lang.id}
-                  style={styles.dropdownItem}
-                  onPress={() => {
-                    setSelectedLang(lang.label);
-                    setShowLangDropdown(false);
-                  }}
+            <Modal
+              visible={showLangDropdown}
+              transparent={true}
+              animationType="fade"
+              onRequestClose={() => setShowLangDropdown(false)}
+            >
+              <Pressable 
+                style={styles.modalBackdrop} 
+                onPress={() => setShowLangDropdown(false)}
+              >
+                <Animated.View 
+                  entering={SlideInDown.duration(250)}
+                  exiting={SlideOutDown.duration(200)}
+                  style={styles.modalContent}
                 >
-                  <MaterialCommunityIcons
-                    name={lang.icon as any}
-                    size={ICON_SIZE.md}
-                    color={
-                      selectedLang === lang.label ? theme.activeTab : theme.text
-                    }
-                  />
-                  <Text
-                    style={[
-                      styles.dropdownItemText,
-                      selectedLang === lang.label &&
-                        styles.dropdownItemTextActive,
-                    ]}
+                  <View style={styles.modalHeader}>
+                    <Text style={styles.modalTitle}>Select Language</Text>
+                    <Pressable onPress={() => setShowLangDropdown(false)} style={styles.modalCloseButton}>
+                      <MaterialCommunityIcons name="close" size={ICON_SIZE.md} color={theme.text} />
+                    </Pressable>
+                  </View>
+
+                  <ScrollView 
+                    showsVerticalScrollIndicator={true}
+                    contentContainerStyle={styles.modalScrollContent}
                   >
-                    {lang.label}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
+                    <View style={styles.modalLangGrid}>
+                      {LANGUAGES.map((lang) => {
+                        const isActive = selectedLang === lang.label;
+                        return (
+                          <Pressable
+                            key={lang.id}
+                            style={[styles.modalLangRow, isActive && styles.modalLangRowActive]}
+                            onPress={() => {
+                              setSelectedLang(lang.label);
+                              setShowLangDropdown(false);
+                            }}
+                          >
+                            <MaterialCommunityIcons
+                              name={lang.icon as any}
+                              size={ICON_SIZE.md + 4}
+                              color={isActive ? theme.white : theme.text}
+                            />
+                            <Text style={[styles.modalLangText, isActive && styles.modalLangTextActive]}>
+                              {lang.label}
+                            </Text>
+                            {isActive && (
+                              <MaterialCommunityIcons 
+                                name="check" 
+                                size={ICON_SIZE.md} 
+                                color={theme.white} 
+                                style={styles.checkIcon} 
+                              />
+                            )}
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </ScrollView>
+                </Animated.View>
+              </Pressable>
+            </Modal>
           )}
         </View>
 
@@ -347,9 +406,7 @@ const CreateSnippetScreen = () => {
         </View>
 
         {/* Description Section */}
-        <View
-          style={styles.section}
-        >
+        <View style={styles.section}>
           <Text style={styles.sectionHeader}>Description</Text>
           <TextInput
             style={styles.bodyInput}
@@ -363,9 +420,7 @@ const CreateSnippetScreen = () => {
         </View>
 
         {/* Tags Section */}
-        <View
-          style={styles.section}
-        >
+        <View style={styles.section}>
           <Text style={styles.sectionHeader}>Tags</Text>
           <View style={styles.tagsContainer}>
             {tags.map((tag, index) => (
@@ -377,7 +432,7 @@ const CreateSnippetScreen = () => {
                 >
                   <MaterialCommunityIcons
                     name="close"
-                    size={14}
+                    size={ICON_SIZE.xs}
                     color={theme.text}
                   />
                 </Pressable>
@@ -399,50 +454,8 @@ const CreateSnippetScreen = () => {
           </View>
         </View>
 
-        {/* Code Section */}
-        <View
-          style={styles.section}
-        >
-          <View style={styles.codeHeaderRow}>
-            <Text style={styles.sectionHeader}>Code</Text>
-            <Pressable onPress={handlePaste} style={styles.pasteButton}>
-              <MaterialCommunityIcons
-                name="clipboard-outline"
-                size={ICON_SIZE.md}
-                color={theme.activeTab}
-              />
-              <Text style={styles.pasteButtonText}>Paste</Text>
-            </Pressable>
-          </View>
-          <View style={styles.codeContainer}>
-            <View style={styles.codeBody}>
-              <View style={styles.lineNumbers}>
-                {lineNumbers.map((n) => (
-                  <Text key={n} style={styles.lineNumberText}>
-                    {n}
-                  </Text>
-                ))}
-              </View>
-              <TextInput
-                style={styles.codeEditor}
-                multiline
-                value={code}
-                onChangeText={setCode}
-                placeholder="Write or paste your code here..."
-                placeholderTextColor={theme.mutedText}
-                textAlignVertical="top"
-                editable={true}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
-          </View>
-        </View>
-
         {/* Attachments Section */}
-        <View
-          style={styles.section}
-        >
+        <View style={styles.section}>
           <Text style={styles.sectionHeader}>Attachments</Text>
 
           {(screenshotPath || filePath) && (
@@ -463,7 +476,7 @@ const CreateSnippetScreen = () => {
                   >
                     <MaterialCommunityIcons
                       name="close-circle"
-                      size={16}
+                      size={ICON_SIZE.sm}
                       color={theme.text}
                     />
                   </Pressable>
@@ -474,7 +487,7 @@ const CreateSnippetScreen = () => {
                   <MaterialCommunityIcons
                     name="file-code-outline"
                     size={ICON_SIZE.sm}
-                    color="#F5A623"
+                    color={theme.fileIcon}
                   />
                   <Text style={styles.previewText} numberOfLines={1}>
                     {filePath.split("/").pop()}
@@ -485,7 +498,7 @@ const CreateSnippetScreen = () => {
                   >
                     <MaterialCommunityIcons
                       name="close-circle"
-                      size={16}
+                      size={ICON_SIZE.sm}
                       color={theme.text}
                     />
                   </Pressable>
@@ -521,7 +534,7 @@ const CreateSnippetScreen = () => {
                 <MaterialCommunityIcons
                   name="folder-outline"
                   size={ICON_SIZE.md}
-                  color="#F5A623"
+                  color={theme.fileIcon}
                 />
                 <Text style={styles.attachmentText}>File</Text>
               </Pressable>
@@ -529,12 +542,47 @@ const CreateSnippetScreen = () => {
                 <MaterialCommunityIcons
                   name="line-scan"
                   size={ICON_SIZE.md}
-                  color="#7ED321"
+                  color={theme.scanGreen}
                 />
                 <Text style={styles.attachmentText}>OCR Scan</Text>
               </Pressable>
             </View>
           )}
+        </View>
+
+        {/* Code Section */}
+        <View style={styles.section}>
+          <View style={styles.codeHeaderRow}>
+            <Text style={styles.sectionHeader}>Code</Text>
+            <Pressable onPress={handlePaste} style={styles.pasteButton}>
+              <MaterialCommunityIcons
+                name="clipboard-outline"
+                size={ICON_SIZE.md}
+                color={theme.activeTab}
+              />
+              <Text style={styles.pasteButtonText}>Paste</Text>
+            </Pressable>
+          </View>
+          <View style={styles.codeContainer}>
+            <View style={styles.codeBody}>
+              <View style={styles.lineNumbers}>
+                <Text style={styles.lineNumberText}>{lineNumbersText}</Text>
+              </View>
+              <TextInput
+                style={styles.codeEditor}
+                multiline
+                value={code}
+                onChangeText={setCode}
+                placeholder="Write or paste your code here..."
+                placeholderTextColor={theme.mutedText}
+                textAlignVertical="top"
+                editable={true}
+                autoCapitalize="none"
+                autoCorrect={false}
+                scrollEnabled={false}
+              />
+            </View>
+          </View>
         </View>
       </ScrollView>
       <CustomAlert
@@ -612,42 +660,79 @@ const makeStyles = (theme: Theme) =>
       textTransform: "uppercase",
     },
     chevronIcon: {
-      marginLeft: 4,
+      marginLeft: SPACING.xs,
     },
     dateText: {
       color: theme.mutedText,
       fontSize: FONT_SIZE.sm,
       fontFamily: FONT_FAMILY.medium,
     },
-    dropdownMenu: {
-      backgroundColor: theme.card,
-      borderWidth: 1,
-      borderColor: theme.cardBorder,
-      borderRadius: BORDER_RADIUS.md,
-      marginTop: SPACING.xs,
-      paddingVertical: SPACING.xs,
-      position: "absolute",
-      top: 36,
-      left: 0,
-      width: 200,
-      zIndex: 100,
-      ...SHADOW.md,
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: theme.overlay,
+      justifyContent: "flex-end",
     },
-    dropdownItem: {
+    modalContent: {
+      backgroundColor: theme.card,
+      borderTopLeftRadius: BORDER_RADIUS.lg,
+      borderTopRightRadius: BORDER_RADIUS.lg,
+      paddingHorizontal: SPACING.md,
+      paddingTop: SPACING.md,
+      paddingBottom: SPACING.xl,
+      maxHeight: "65%",
+      borderColor: theme.cardBorder,
+      borderTopWidth: 1,
+    },
+    modalHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingBottom: SPACING.md,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.cardBorder,
+      marginBottom: SPACING.sm,
+    },
+    modalTitle: {
+      fontSize: FONT_SIZE.lg,
+      fontFamily: FONT_FAMILY.bold,
+      color: theme.text,
+    },
+    modalCloseButton: {
+      padding: SPACING.xs,
+    },
+    modalScrollContent: {
+      paddingVertical: SPACING.xs,
+    },
+    modalLangGrid: {
+      gap: SPACING.sm,
+    },
+    modalLangRow: {
       flexDirection: "row",
       alignItems: "center",
-      paddingVertical: SPACING.sm,
+      paddingVertical: SPACING.md,
       paddingHorizontal: SPACING.md,
+      borderRadius: BORDER_RADIUS.md,
+      backgroundColor: theme.tagBg,
+      borderWidth: 1,
+      borderColor: theme.cardBorder,
     },
-    dropdownItemText: {
-      color: theme.text,
-      fontFamily: FONT_FAMILY.regular,
+    modalLangRowActive: {
+      backgroundColor: theme.activeTab,
+      borderColor: theme.activeTab,
+    },
+    modalLangText: {
       fontSize: FONT_SIZE.md,
-      marginLeft: SPACING.sm,
-    },
-    dropdownItemTextActive: {
-      color: theme.activeTab,
       fontFamily: FONT_FAMILY.medium,
+      color: theme.text,
+      marginLeft: SPACING.md,
+      flex: 1,
+    },
+    modalLangTextActive: {
+      color: theme.white,
+      fontFamily: FONT_FAMILY.semibold,
+    },
+    checkIcon: {
+      marginLeft: "auto",
     },
     mainTitleInput: {
       fontSize: FONT_SIZE.xxl,
@@ -706,7 +791,7 @@ const makeStyles = (theme: Theme) =>
       borderRadius: BORDER_RADIUS.full,
       flexDirection: "row",
       alignItems: "center",
-      gap: 6,
+      gap: SPACING.sm,
     },
     tagText: {
       color: theme.text,
@@ -747,11 +832,9 @@ const makeStyles = (theme: Theme) =>
     codeContainer: {
       backgroundColor: theme.codeBg,
       borderRadius: BORDER_RADIUS.lg,
-      maxHeight: 350,
       borderWidth: 1,
       borderColor: theme.cardBorder,
       ...SHADOW.sm,
-      overflow: "hidden",
     },
     codeBody: {
       flexDirection: "row",
@@ -767,6 +850,7 @@ const makeStyles = (theme: Theme) =>
       fontFamily: "monospace",
       fontSize: FONT_SIZE.sm,
       lineHeight: 22,
+      textAlign: "right",
     },
     codeEditor: {
       flex: 1,
@@ -797,7 +881,7 @@ const makeStyles = (theme: Theme) =>
     attachmentText: {
       color: theme.text,
       fontFamily: FONT_FAMILY.medium,
-      fontSize: 12,
+      fontSize: FONT_SIZE.sm,
       marginTop: SPACING.xs,
     },
     previewsContainer: {
@@ -812,15 +896,15 @@ const makeStyles = (theme: Theme) =>
       backgroundColor: theme.tagBg,
       borderRadius: BORDER_RADIUS.sm,
       paddingHorizontal: SPACING.sm,
-      paddingVertical: 6,
+      paddingVertical: SPACING.xs,
       borderWidth: 1,
       borderColor: theme.cardBorder,
-      gap: 6,
+      gap: SPACING.sm,
     },
     previewText: {
       color: theme.text,
       fontFamily: FONT_FAMILY.medium,
-      fontSize: 12,
+      fontSize: FONT_SIZE.sm,
       maxWidth: 140,
     },
     previewDeleteBtn: {

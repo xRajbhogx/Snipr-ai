@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from "react";
 import {
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -7,6 +8,7 @@ import {
   View,
 } from "react-native";
 import { useFocusEffect } from "expo-router";
+import Animated, { SlideInDown, SlideOutDown } from "react-native-reanimated";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   BORDER_RADIUS,
@@ -20,17 +22,34 @@ import {
 } from "@/constants/theme";
 import { useGlobalStyles } from "@/constants/useGlobalStyles";
 import { useTheme, useThemePreference } from "@/hooks/useTheme";
+import { useUserPreferences, SortOrder } from "@/hooks/useUserPreferences";
 import { getDashboardStats, seedDemoSnippets, deleteAllSnippets } from "@/services/db/snippets";
 import { getDatabaseSize, getCacheSize, clearAppCache, formatBytes } from "@/utils/storage";
 import CustomAlert, { CustomAlertButton } from "@/components/CustomAlert";
 import Toast from "@/components/Toast";
 import type { ThemePreference } from "@/context/ThemeContext";
 
+const PROFILE_LANGUAGES = [
+  { id: "ts", label: "TypeScript", icon: "language-typescript" },
+  { id: "js", label: "JavaScript", icon: "language-javascript" },
+  { id: "py", label: "Python", icon: "language-python" },
+  { id: "java", label: "Java", icon: "language-java" },
+  { id: "go", label: "Go", icon: "language-go" },
+  { id: "kt", label: "Kotlin", icon: "language-kotlin" },
+  { id: "swift", label: "Swift", icon: "language-swift" },
+  { id: "cs", label: "C#", icon: "language-csharp" },
+  { id: "cpp", label: "C++", icon: "language-cpp" },
+  { id: "rs", label: "Rust", icon: "language-rust" },
+  { id: "rb", label: "Ruby", icon: "language-ruby" },
+  { id: "php", label: "PHP", icon: "language-php" },
+];
+
 const ProfileScreen = () => {
   const theme = useTheme();
   const globalStyles = useGlobalStyles(theme);
   const styles = makeStyles(theme);
   const { themePreference, setThemePreference } = useThemePreference();
+  const { preferences, updatePreferences } = useUserPreferences();
 
   // Screen metrics states
   const [stats, setStats] = useState({ snippets: 0, favorites: 0 });
@@ -40,6 +59,9 @@ const ProfileScreen = () => {
   // Toast state
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
+
+  // Default language modal visibility state
+  const [showLangModal, setShowLangModal] = useState(false);
 
   // Custom Alert configuration state
   const [alertConfig, setAlertConfig] = useState<{
@@ -165,6 +187,25 @@ const ProfileScreen = () => {
     }
   };
 
+  const handleSortOrderChange = async (order: SortOrder) => {
+    try {
+      await updatePreferences({ sortOrder: order });
+      const orderLabel = order === "newest" ? "Newest" : order === "oldest" ? "Oldest" : "A-Z";
+      showToast(`Sort order set to ${orderLabel}!`);
+    } catch (e) {
+      console.error("Failed to save sort order preference:", e);
+    }
+  };
+
+  const handleDefaultLangChange = async (lang: string) => {
+    try {
+      await updatePreferences({ defaultLanguage: lang });
+      showToast(`Default language set to ${lang}!`);
+    } catch (e) {
+      console.error("Failed to save default language:", e);
+    }
+  };
+
   return (
     <View style={globalStyles.tabScreenContainer}>
       {/* Header */}
@@ -223,9 +264,9 @@ const ProfileScreen = () => {
           </View>
         </View>
 
-        {/* Preferences Section */}
         <Text style={styles.sectionTitle}>PREFERENCES</Text>
         <View style={styles.card}>
+          {/* App Theme */}
           <Text style={styles.cardLabel}>App Theme</Text>
           <View style={styles.themeSelector}>
             {(["system", "light", "dark"] as ThemePreference[]).map((pref) => {
@@ -269,6 +310,147 @@ const ProfileScreen = () => {
               );
             })}
           </View>
+
+          <View style={styles.rowDivider} />
+
+          {/* Default Sort Order */}
+          <Text style={[styles.cardLabel, styles.cardLabelSpaced]}>Default Sort Order</Text>
+          <View style={styles.themeSelector}>
+            {(["newest", "oldest", "alphabetical"] as SortOrder[]).map((order) => {
+              const isActive = preferences.sortOrder === order;
+              const iconMap = {
+                newest: "sort-clock-descending",
+                oldest: "sort-clock-ascending",
+                alphabetical: "sort-alphabetical-ascending",
+              };
+              const labelMap = {
+                newest: "Newest",
+                oldest: "Oldest",
+                alphabetical: "A-Z",
+              };
+
+              return (
+                <Pressable
+                  key={order}
+                  onPress={() => handleSortOrderChange(order)}
+                  style={({ pressed }) => [
+                    styles.themeButton,
+                    isActive && styles.themeButtonActive,
+                    pressed && styles.themeButtonPressed,
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name={iconMap[order] as any}
+                    size={ICON_SIZE.md}
+                    color={isActive ? theme.white : theme.mutedText}
+                    style={styles.themeIcon}
+                  />
+                  <Text
+                    style={[
+                      styles.themeText,
+                      isActive && styles.themeTextActive,
+                    ]}
+                  >
+                    {labelMap[order]}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          <View style={styles.rowDivider} />
+
+          {/* Default Language Action Row */}
+          <Pressable
+            onPress={() => setShowLangModal(true)}
+            style={({ pressed }) => [
+              styles.actionButton,
+              pressed && styles.actionButtonPressed,
+            ]}
+          >
+            <View style={styles.actionLeft}>
+              <MaterialCommunityIcons
+                name="code-json"
+                size={ICON_SIZE.md}
+                color={theme.text}
+              />
+              <Text style={styles.actionText}>Default Language</Text>
+            </View>
+            <View style={styles.actionRight}>
+              <Text style={styles.selectedLangValue}>{preferences.defaultLanguage}</Text>
+              <MaterialCommunityIcons
+                name="chevron-right"
+                size={ICON_SIZE.md}
+                color={theme.mutedText}
+              />
+            </View>
+          </Pressable>
+
+          {/* Default Language Modal */}
+          {showLangModal && (
+            <Modal
+              visible={showLangModal}
+              transparent={true}
+              animationType="fade"
+              onRequestClose={() => setShowLangModal(false)}
+            >
+              <Pressable 
+                style={styles.modalBackdrop} 
+                onPress={() => setShowLangModal(false)}
+              >
+                <Animated.View 
+                  entering={SlideInDown.duration(250)}
+                  exiting={SlideOutDown.duration(200)}
+                  style={styles.modalContent}
+                >
+                  <View style={styles.modalHeader}>
+                    <Text style={styles.modalTitle}>Default Language</Text>
+                    <Pressable onPress={() => setShowLangModal(false)} style={styles.modalCloseButton}>
+                      <MaterialCommunityIcons name="close" size={ICON_SIZE.md} color={theme.text} />
+                    </Pressable>
+                  </View>
+
+                  <ScrollView 
+                    showsVerticalScrollIndicator={true}
+                    contentContainerStyle={styles.modalScrollContent}
+                  >
+                    <View style={styles.modalLangGrid}>
+                      {PROFILE_LANGUAGES.map((lang) => {
+                        const isActive = preferences.defaultLanguage === lang.label;
+                        return (
+                          <Pressable
+                            key={lang.id}
+                            style={[styles.modalLangRow, isActive && styles.modalLangRowActive]}
+                            onPress={() => {
+                              handleDefaultLangChange(lang.label);
+                              setShowLangModal(false);
+                            }}
+                          >
+                            <MaterialCommunityIcons
+                              name={lang.icon as any}
+                              size={ICON_SIZE.md + 4}
+                              color={isActive ? theme.white : theme.text}
+                            />
+                            <Text style={[styles.modalLangText, isActive && styles.modalLangTextActive]}>
+                              {lang.label}
+                            </Text>
+                            {isActive && (
+                              <MaterialCommunityIcons 
+                                name="check" 
+                                size={ICON_SIZE.md} 
+                                color={theme.white} 
+                                style={styles.checkIcon} 
+                              />
+                            )}
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  </ScrollView>
+                </Animated.View>
+              </Pressable>
+            </Modal>
+          )}
         </View>
 
         {/* Storage & Maintenance Section */}
@@ -582,6 +764,87 @@ const makeStyles = (theme: Theme) =>
       color: theme.white,
       fontFamily: FONT_FAMILY.semibold,
       fontWeight: FONT_WEIGHT.semibold,
+    },
+    cardLabelSpaced: {
+      marginTop: SPACING.sm,
+    },
+    actionRight: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACING.xs,
+    },
+    selectedLangValue: {
+      fontSize: FONT_SIZE.sm + 2,
+      fontFamily: FONT_FAMILY.semibold,
+      fontWeight: FONT_WEIGHT.semibold,
+      color: theme.activeTab,
+    },
+    modalBackdrop: {
+      flex: 1,
+      backgroundColor: theme.overlay,
+      justifyContent: "flex-end",
+    },
+    modalContent: {
+      backgroundColor: theme.card,
+      borderTopLeftRadius: BORDER_RADIUS.lg,
+      borderTopRightRadius: BORDER_RADIUS.lg,
+      paddingHorizontal: SPACING.md,
+      paddingTop: SPACING.md,
+      paddingBottom: SPACING.xl,
+      maxHeight: "65%",
+      borderColor: theme.cardBorder,
+      borderTopWidth: 1,
+    },
+    modalHeader: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      alignItems: "center",
+      paddingBottom: SPACING.md,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.cardBorder,
+      marginBottom: SPACING.sm,
+    },
+    modalTitle: {
+      fontSize: FONT_SIZE.lg,
+      fontFamily: FONT_FAMILY.bold,
+      color: theme.text,
+    },
+    modalCloseButton: {
+      padding: SPACING.xs,
+    },
+    modalScrollContent: {
+      paddingVertical: SPACING.xs,
+    },
+    modalLangGrid: {
+      gap: SPACING.sm,
+    },
+    modalLangRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: SPACING.md,
+      paddingHorizontal: SPACING.md,
+      borderRadius: BORDER_RADIUS.md,
+      backgroundColor: theme.tagBg,
+      borderWidth: 1,
+      borderColor: theme.cardBorder,
+    },
+    modalLangRowActive: {
+      backgroundColor: theme.activeTab,
+      borderColor: theme.activeTab,
+    },
+    modalLangText: {
+      fontSize: FONT_SIZE.md,
+      fontFamily: FONT_FAMILY.medium,
+      color: theme.text,
+      marginLeft: SPACING.md,
+      flex: 1,
+    },
+    modalLangTextActive: {
+      color: theme.white,
+      fontFamily: FONT_FAMILY.semibold,
+    },
+    checkIcon: {
+      marginLeft: "auto",
     },
     infoRow: {
       flexDirection: "row",

@@ -11,6 +11,7 @@ import {
 } from "@/constants/theme";
 import { useGlobalStyles } from "@/constants/useGlobalStyles";
 import { useTheme } from "@/hooks/useTheme";
+import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { getFavorites } from "@/services/db/snippets";
 import { Snippet } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -44,6 +45,7 @@ const FavouritesScreen = () => {
   const theme = useTheme();
   const globalStyles = useGlobalStyles(theme);
   const styles = makeStyles(theme);
+  const { preferences } = useUserPreferences();
   
   const [favourites, setFavourites] = useState<Snippet[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -80,6 +82,18 @@ const FavouritesScreen = () => {
       return matchesLanguage && matchesSearch;
     });
   }, [favourites, selectedLanguage, searchQuery]);
+
+  const sortedFavourites = React.useMemo(() => {
+    const list = [...filteredFavourites];
+    if (preferences.sortOrder === "newest") {
+      list.sort((a, b) => b.created_at - a.created_at);
+    } else if (preferences.sortOrder === "oldest") {
+      list.sort((a, b) => a.created_at - b.created_at);
+    } else if (preferences.sortOrder === "alphabetical") {
+      list.sort((a, b) => a.title.localeCompare(b.title));
+    }
+    return list;
+  }, [filteredFavourites, preferences.sortOrder]);
 
   const filteredCount = filteredFavourites.length;
 
@@ -192,7 +206,7 @@ const FavouritesScreen = () => {
       )}
 
       <FlatList
-        data={filteredFavourites}
+        data={sortedFavourites}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => <SnippetCard snippet={item} />}
         contentContainerStyle={styles.listContent}

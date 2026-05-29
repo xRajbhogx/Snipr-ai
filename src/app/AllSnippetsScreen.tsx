@@ -12,6 +12,7 @@ import {
 } from "@/constants/theme";
 import { useGlobalStyles } from "@/constants/useGlobalStyles";
 import { useTheme } from "@/hooks/useTheme";
+import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { getAllSnippets, deleteAllSnippets, seedDemoSnippets } from "@/services/db/snippets";
 import { Snippet } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -41,6 +42,7 @@ const AllSnippetsScreen = () => {
   const theme = useTheme();
   const globalStyles = useGlobalStyles(theme);
   const styles = makeStyles(theme);
+  const { preferences } = useUserPreferences();
   const [snippets, setSnippets] = useState<Snippet[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
@@ -93,6 +95,18 @@ const AllSnippetsScreen = () => {
       return matchesLanguage && matchesSearch;
     });
   }, [snippets, selectedLanguage, searchQuery]);
+
+  const sortedSnippets = React.useMemo(() => {
+    const list = [...filteredSnippets];
+    if (preferences.sortOrder === "newest") {
+      list.sort((a, b) => b.created_at - a.created_at);
+    } else if (preferences.sortOrder === "oldest") {
+      list.sort((a, b) => a.created_at - b.created_at);
+    } else if (preferences.sortOrder === "alphabetical") {
+      list.sort((a, b) => a.title.localeCompare(b.title));
+    }
+    return list;
+  }, [filteredSnippets, preferences.sortOrder]);
 
   useFocusEffect(
     useCallback(() => {
@@ -249,7 +263,7 @@ const AllSnippetsScreen = () => {
       )}
 
       <FlatList
-        data={filteredSnippets}
+        data={sortedSnippets}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => <SnippetCard snippet={item} />}
         contentContainerStyle={styles.listContent}

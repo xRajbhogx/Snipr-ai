@@ -14,11 +14,13 @@ export const COLORS = {
     favorite: "#F59E0B",
     success: "#22C55E",
     successSoft: "rgba(34, 197, 94, 0.15)",
-    codeBg: "#000000ff",
-    codeText: "#D4D4D4",
+    codeBg: "rgba(255, 255, 255, 1)",
+    codeText: "#ff0000ff",
     white: "#FFFFFF",
     snippetDescriptionBg: "#e6e6e6ff",
     overlay: "rgba(0, 0, 0, 0.5)",
+    fileIcon: "#F5A623",
+    scanGreen: "#7ED321",
   },
   dark: {
     background: "#1c1c1c",
@@ -40,6 +42,8 @@ export const COLORS = {
     white: "#FFFFFF",
     snippetDescriptionBg: "#1e1e1eff",
     overlay: "rgba(0, 0, 0, 0.7)",
+    fileIcon: "#F5A623",
+    scanGreen: "#7ED321",
   },
 };
 export type Theme = typeof COLORS.light;
@@ -90,6 +94,7 @@ export const FONT_FAMILY = {
 };
 
 export const ICON_SIZE = {
+  xs: 14,
   sm: 16,
   md: 20,
   lg: 24,
