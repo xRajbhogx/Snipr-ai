@@ -333,7 +333,7 @@ const SnippetDetailScreen = () => {
                 style={styles.screenshotAttachmentCard}
               >
                 <Image
-                  source={snippet.screenshot_path}
+                  source={{ uri: snippet.screenshot_path }}
                   style={styles.screenshotThumbnail}
                   contentFit="cover"
                 />
@@ -398,7 +398,7 @@ const SnippetDetailScreen = () => {
               </View>
             </View>
             <Image
-              source={snippet.screenshot_path}
+              source={{ uri: snippet.screenshot_path }}
               style={styles.fullscreenImage}
               contentFit="contain"
             />

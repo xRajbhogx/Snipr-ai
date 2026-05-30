@@ -372,6 +372,49 @@ export async function getFileInfo(path: string): Promise<FileItem> {
 }
 
 /**
+ * Helper to get file extension from MIME type
+ */
+function getExtensionFromMimeType(mimeType: string | null): string {
+  if (!mimeType) return "";
+  const parts = mimeType.split("/");
+  if (parts.length < 2) return "";
+  const subType = parts[1].toLowerCase();
+
+  switch (subType) {
+    case "jpeg":
+    case "jpg":
+      return "jpg";
+    case "png":
+      return "png";
+    case "gif":
+      return "gif";
+    case "webp":
+      return "webp";
+    case "bmp":
+      return "bmp";
+    case "heic":
+      return "heic";
+    case "json":
+      return "json";
+    case "javascript":
+    case "x-javascript":
+      return "js";
+    case "typescript":
+      return "ts";
+    case "plain":
+      return "txt";
+    case "html":
+      return "html";
+    case "css":
+      return "css";
+    case "xml":
+      return "xml";
+    default:
+      return "";
+  }
+}
+
+/**
  * Downloads a file from URL to local storage. Destination can be a DirectoryType or absolute path URI.
  */
 export async function downloadFile(
@@ -395,8 +438,20 @@ export async function downloadFile(
 
   try {
     const result = await FileSystem.downloadAsync(url, targetPath);
+    
+    // Auto-detect and append extension if missing based on mimeType
+    let finalPath = targetPath;
+    const currentExt = getExtension(targetPath);
+    if (result.status === 200 && !currentExt && result.mimeType) {
+      const suggestedExt = getExtensionFromMimeType(result.mimeType);
+      if (suggestedExt) {
+        finalPath = `${targetPath}.${suggestedExt}`;
+        await FileSystem.moveAsync({ from: targetPath, to: finalPath });
+      }
+    }
+
     return {
-      uri: result.uri,
+      uri: finalPath,
       status: result.status,
       headers: (result.headers || {}) as Record<string, string>,
       mimeType: result.mimeType || null,

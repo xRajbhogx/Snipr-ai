@@ -485,7 +485,7 @@ const FileManagementModal = ({
               ) : isImageFile(viewingFile.name) ? (
                 <View style={styles.imageViewer}>
                   <Image
-                    source={viewingFile.path}
+                    source={{ uri: viewingFile.path }}
                     style={styles.imagePreview}
                     contentFit="contain"
                     placeholder={require("@/assets/images/react-logo.png")}
