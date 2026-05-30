@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useState, useRef } from "react";
 import {
   Modal,
   Pressable,
@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   DevSettings,
   Platform,
+  TextInput,
 } from "react-native";
 import { useFocusEffect } from "expo-router";
 import Animated, { SlideInDown, SlideOutDown } from "react-native-reanimated";
@@ -38,6 +39,17 @@ import CustomAlert, { CustomAlertButton } from "@/components/CustomAlert";
 import Toast from "@/components/Toast";
 import type { ThemePreference } from "@/context/ThemeContext";
 import { closeDatabase } from "@/services/db/client";
+import {
+  AIProvider,
+  getStoredAIProvider,
+  setStoredAIProvider,
+  getStoredModel,
+  setStoredModel,
+  getStoredAPIKey,
+  setStoredAPIKey,
+  clearStoredAPIKey,
+  explainCode,
+} from "@/services/ai/aiServices";
 
 const PROFILE_LANGUAGES = [
   { id: "ts", label: "TypeScript", icon: "language-typescript" },
@@ -53,6 +65,18 @@ const PROFILE_LANGUAGES = [
   { id: "rb", label: "Ruby", icon: "language-ruby" },
   { id: "php", label: "PHP", icon: "language-php" },
 ];
+
+const AI_PROVIDERS: { id: AIProvider; label: string; icon: string }[] = [
+  { id: "gemini", label: "Gemini", icon: "google" },
+  { id: "openai", label: "OpenAI", icon: "robot-outline" },
+  { id: "claude", label: "Claude", icon: "brain" },
+];
+
+const PROVIDER_MODELS: Record<AIProvider, string[]> = {
+  gemini: ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"],
+  openai: ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"],
+  claude: ["claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5"],
+};
 
 const ProfileScreen = () => {
   const theme = useTheme();
@@ -71,6 +95,14 @@ const ProfileScreen = () => {
   const [showPreferencesModal, setShowPreferencesModal] = useState(false);
   const [showStorageModal, setShowStorageModal] = useState(false);
   const [showLangModal, setShowLangModal] = useState(false);
+
+  // AI Configuration Modal States
+  const [showAIModal, setShowAIModal] = useState(false);
+  const [aiProvider, setAiProvider] = useState<AIProvider>("gemini");
+  const apiKeyRef = useRef("");
+  const [aiModel, setAiModel] = useState("gemini-1.5-flash");
+  const [secureTextEntry, setSecureTextEntry] = useState(true);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
 
   // Toast state
   const [toastVisible, setToastVisible] = useState(false);
@@ -114,6 +146,148 @@ const ProfileScreen = () => {
     setAlertConfig((prev) => ({ ...prev, visible: false }));
   };
 
+  const loadAISettings = useCallback(async () => {
+    try {
+      const provider = await getStoredAIProvider();
+      setAiProvider(provider);
+
+      const apiKey = await getStoredAPIKey(provider);
+      apiKeyRef.current = apiKey || "";
+
+      const model = await getStoredModel(provider);
+      if (model && PROVIDER_MODELS[provider].includes(model)) {
+        setAiModel(model);
+      } else {
+        setAiModel(PROVIDER_MODELS[provider][0]);
+      }
+    } catch (error) {
+      // Failed to load AI settings
+    }
+  }, []);
+
+  const handleProviderChange = async (provider: AIProvider) => {
+    setAiProvider(provider);
+    try {
+      const apiKey = await getStoredAPIKey(provider);
+      apiKeyRef.current = apiKey || "";
+
+      const model = await getStoredModel(provider);
+      if (model && PROVIDER_MODELS[provider].includes(model)) {
+        setAiModel(model);
+      } else {
+        setAiModel(PROVIDER_MODELS[provider][0]);
+      }
+    } catch (error) {
+      // Failed to load AI settings
+    }
+  };
+
+  const handleSaveAISettings = async () => {
+    const keyToSave = apiKeyRef.current.trim();
+    
+    // If the key is empty, we just clear it from storage and save other settings (provider, model)
+    if (!keyToSave) {
+      try {
+        await setStoredAIProvider(aiProvider);
+        await setStoredModel(aiProvider, aiModel);
+        await clearStoredAPIKey(aiProvider);
+        showToast("AI configuration saved successfully!");
+        setShowAIModal(false);
+      } catch {
+        showAlert("Error", "Failed to save AI configuration. Please try again.");
+      }
+      return;
+    }
+
+    // If key is not empty, we MUST validate it first before saving!
+    setIsTestingConnection(true);
+    try {
+      const testResult = await explainCode(
+        "console.log('hello')",
+        "JavaScript",
+        {
+          provider: aiProvider,
+          apiKey: keyToSave,
+          model: aiModel,
+        }
+      );
+
+      if (testResult && testResult.trim()) {
+        // Validation succeeded -> Save everything!
+        await setStoredAIProvider(aiProvider);
+        await setStoredModel(aiProvider, aiModel);
+        await setStoredAPIKey(aiProvider, keyToSave);
+        showToast("AI configuration saved successfully!");
+        setShowAIModal(false);
+      } else {
+        throw new Error("No response received from the AI provider.");
+      }
+    } catch (error: any) {
+      // Validation failed -> Delete/clear from storage, do not save!
+      try {
+        await clearStoredAPIKey(aiProvider);
+      } catch {
+        // Ignore
+      }
+      const errorMessage = error?.message || "An unknown error occurred. Please verify your API key and network connection.";
+      showAlert("Save Failed (Invalid Key)", `API Key is invalid and was not saved. ${errorMessage}`);
+    } finally {
+      setIsTestingConnection(false);
+    }
+  };
+
+  const handleTestConnection = async () => {
+    const keyToTest = apiKeyRef.current.trim();
+    if (!keyToTest) {
+      showAlert(
+        "Missing API Key",
+        `Please enter an API Key for ${aiProvider.charAt(0).toUpperCase() + aiProvider.slice(1)} before testing.`
+      );
+      return;
+    }
+
+    setIsTestingConnection(true);
+    try {
+      const testResult = await explainCode(
+        "console.log('hello')",
+        "JavaScript",
+        {
+          provider: aiProvider,
+          apiKey: keyToTest,
+          model: aiModel,
+        }
+      );
+
+      if (testResult && testResult.trim()) {
+        await setStoredAPIKey(aiProvider, keyToTest);
+        showAlert(
+          "Connection Successful",
+          `API Key is valid and saved!`,
+          [{ text: "Awesome", style: "default" }]
+        );
+      } else {
+        throw new Error("No response received from the AI provider.");
+      }
+    } catch (error: any) {
+      // Validation failed -> Delete/clear from storage!
+      try {
+        await clearStoredAPIKey(aiProvider);
+      } catch {
+        // Ignore
+      }
+      const errorMessage = error?.message || "An unknown error occurred. Please verify your API key and network connection.";
+      showAlert("Connection Failed", errorMessage);
+    } finally {
+      setIsTestingConnection(false);
+    }
+  };
+
+  const handleOpenAIModal = async () => {
+    await loadAISettings();
+    setSecureTextEntry(true);
+    setShowAIModal(true);
+  };
+
   // Load stats and storage metrics
   const loadStatsAndStorage = useCallback(async () => {
     try {
@@ -128,8 +302,8 @@ const ProfileScreen = () => {
 
       const fsUsage = await getStorageUsage();
       setFsStats(fsUsage);
-    } catch (error) {
-      console.error("Failed to load profile metrics:", error);
+    } catch {
+      // Failed to load profile metrics
     }
   }, []);
 
@@ -146,8 +320,7 @@ const ProfileScreen = () => {
       await clearAppCache();
       await loadStatsAndStorage();
       showToast("Cache cleared successfully!");
-    } catch (error) {
-      console.error("Failed to clear cache:", error);
+    } catch {
       showAlert("Error", "Failed to clear the temporary app cache.");
     } finally {
       setIsMaintenanceActionLoading(false);
@@ -171,8 +344,7 @@ const ProfileScreen = () => {
               seedDemoSnippets();
               await loadStatsAndStorage();
               showToast("Starter snippets imported!");
-            } catch (error) {
-              console.error("Failed to seed data:", error);
+            } catch {
               showAlert("Error", "Could not seed starter snippets.");
             } finally {
               setIsMaintenanceActionLoading(false);
@@ -198,8 +370,7 @@ const ProfileScreen = () => {
               deleteAllSnippets();
               await loadStatsAndStorage();
               showToast("Vault reset completed!");
-            } catch (error) {
-              console.error("Failed to delete snippets:", error);
+            } catch {
               showAlert("Error", "Could not clear local database storage.");
             } finally {
               setIsMaintenanceActionLoading(false);
@@ -229,11 +400,20 @@ const ProfileScreen = () => {
               // 2. Clear AsyncStorage immediately (so UI doesn't lag on restart)
               await AsyncStorage.clear();
 
+              // 2.5. Delete all saved API keys securely
+              try {
+                await clearStoredAPIKey("gemini");
+                await clearStoredAPIKey("openai");
+                await clearStoredAPIKey("claude");
+              } catch {
+                // Ignore
+              }
+
               // Close database explicitly to release the file lock
               try {
                 closeDatabase();
-              } catch (closeErr) {
-                console.error("Failed to close database before reload:", closeErr);
+              } catch {
+                // Ignore
               }
 
               // 3. Reload the app
@@ -246,8 +426,7 @@ const ProfileScreen = () => {
               } else {
                 DevSettings.reload();
               }
-            } catch (error) {
-              console.error(error);
+            } catch {
               showAlert("Error", "An error occurred. The app will restart now.");
               setTimeout(() => {
                 if (Platform.OS !== 'web') {
@@ -269,8 +448,8 @@ const ProfileScreen = () => {
     try {
       await setThemePreference(pref);
       showToast(`Theme updated to ${pref.charAt(0).toUpperCase() + pref.slice(1)}!`);
-    } catch (e) {
-      console.error("Failed to save theme preference:", e);
+    } catch {
+      // Ignore
     }
   };
 
@@ -279,8 +458,8 @@ const ProfileScreen = () => {
       await updatePreferences({ sortOrder: order });
       const orderLabel = order === "newest" ? "Newest" : order === "oldest" ? "Oldest" : "A-Z";
       showToast(`Sort order set to ${orderLabel}!`);
-    } catch (e) {
-      console.error("Failed to save sort order preference:", e);
+    } catch {
+      // Ignore
     }
   };
 
@@ -288,8 +467,8 @@ const ProfileScreen = () => {
     try {
       await updatePreferences({ defaultLanguage: lang });
       showToast(`Default language set to ${lang}!`);
-    } catch (e) {
-      console.error("Failed to save default language:", e);
+    } catch {
+      // Ignore
     }
   };
 
@@ -373,6 +552,36 @@ const ProfileScreen = () => {
               <View style={styles.menuTexts}>
                 <Text style={styles.menuTitle}>App Preferences</Text>
                 <Text style={styles.menuSub}>Theme, sorting, default language</Text>
+              </View>
+            </View>
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={ICON_SIZE.lg}
+              color={theme.mutedText}
+            />
+          </Pressable>
+
+          <View style={styles.rowDivider} />
+
+          {/* AI Configuration Row */}
+          <Pressable
+            onPress={handleOpenAIModal}
+            style={({ pressed }) => [
+              styles.menuRow,
+              pressed && styles.menuRowPressed,
+            ]}
+          >
+            <View style={styles.menuLeft}>
+              <View style={[styles.menuIconBox, { backgroundColor: theme.aiIconSoft }]}>
+                <MaterialCommunityIcons
+                  name="robot-outline"
+                  size={ICON_SIZE.md}
+                  color={theme.aiIcon}
+                />
+              </View>
+              <View style={styles.menuTexts}>
+                <Text style={styles.menuTitle}>AI Configuration</Text>
+                <Text style={styles.menuSub}>Active provider, API keys, and models</Text>
               </View>
             </View>
             <MaterialCommunityIcons
@@ -475,6 +684,190 @@ const ProfileScreen = () => {
           </Pressable>
         </View>
       </ScrollView>
+
+      {/* ========================================== */}
+      {/* AI Configuration Modal */}
+      {/* ========================================== */}
+      <Modal
+        visible={showAIModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowAIModal(false)}
+      >
+        <View style={styles.modalBackdrop}>
+          <Animated.View
+            entering={SlideInDown.duration(300)}
+            exiting={SlideOutDown.duration(250)}
+            style={styles.modalContent}
+          >
+            {/* Header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>AI Configuration</Text>
+              <Pressable
+                onPress={() => setShowAIModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <MaterialCommunityIcons name="close" size={ICON_SIZE.lg} color={theme.text} />
+              </Pressable>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.modalScrollBody}>
+              {/* AI Provider */}
+              <Text style={styles.cardLabel}>Active AI Provider</Text>
+              <View style={styles.themeSelector}>
+                {AI_PROVIDERS.map((provider) => {
+                  const isActive = aiProvider === provider.id;
+                  return (
+                    <Pressable
+                      key={provider.id}
+                      onPress={() => handleProviderChange(provider.id)}
+                      style={({ pressed }) => [
+                        styles.themeButton,
+                        isActive && styles.themeButtonActive,
+                        pressed && styles.themeButtonPressed,
+                      ]}
+                    >
+                      <MaterialCommunityIcons
+                        name={provider.icon as any}
+                        size={ICON_SIZE.md}
+                        color={isActive ? theme.white : theme.mutedText}
+                        style={styles.themeIcon}
+                      />
+                      <Text
+                        style={[
+                          styles.themeText,
+                          isActive && styles.themeTextActive,
+                        ]}
+                      >
+                        {provider.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              <View style={styles.modalDivider} />
+
+              {/* API Key */}
+              <Text style={styles.cardLabel}>API Key</Text>
+              <View style={styles.inputContainer}>
+                <TextInput
+                  key={aiProvider}
+                  style={styles.inputField}
+                  defaultValue={apiKeyRef.current}
+                  onChangeText={(text) => {
+                    apiKeyRef.current = text;
+                  }}
+                  placeholder={`Enter ${aiProvider.charAt(0).toUpperCase() + aiProvider.slice(1)} API Key`}
+                  placeholderTextColor={theme.mutedText}
+                  secureTextEntry={secureTextEntry}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  returnKeyType="done"
+                />
+                <Pressable
+                  onPress={() => setSecureTextEntry(!secureTextEntry)}
+                  style={styles.inputIcon}
+                >
+                  <MaterialCommunityIcons
+                    name={secureTextEntry ? "eye-off-outline" : "eye-outline"}
+                    size={ICON_SIZE.md}
+                    color={theme.mutedText}
+                  />
+                </Pressable>
+              </View>
+
+              <View style={styles.modalDivider} />
+
+              {/* AI Model */}
+              <Text style={styles.cardLabel}>AI Model</Text>
+              <View style={styles.modelListContainer}>
+                {PROVIDER_MODELS[aiProvider].map((model) => {
+                  const isActive = aiModel === model;
+                  return (
+                    <Pressable
+                      key={model}
+                      onPress={() => setAiModel(model)}
+                      style={({ pressed }) => [
+                        styles.modelRow,
+                        isActive && styles.modelRowActive,
+                        pressed && styles.themeButtonPressed,
+                      ]}
+                    >
+                      <MaterialCommunityIcons
+                        name={isActive ? "radiobox-marked" : "radiobox-blank"}
+                        size={ICON_SIZE.md}
+                        color={isActive ? theme.white : theme.mutedText}
+                      />
+                      <Text
+                        style={[
+                          styles.modelText,
+                          isActive && styles.modelTextActive,
+                        ]}
+                      >
+                        {model}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+
+              <View style={styles.modalDivider} />
+
+              {/* Action Buttons */}
+              <View style={styles.modalActionGroup}>
+                <Pressable
+                  onPress={handleTestConnection}
+                  disabled={isTestingConnection}
+                  style={({ pressed }) => [
+                    styles.testBtn,
+                    pressed && styles.themeButtonPressed,
+                  ]}
+                >
+                  {isTestingConnection ? (
+                    <ActivityIndicator size="small" color={theme.activeTab} />
+                  ) : (
+                    <View style={styles.testBtnContent}>
+                      <MaterialCommunityIcons name="api" size={ICON_SIZE.md} color={theme.activeTab} />
+                      <Text style={styles.testBtnText}>Test Connection</Text>
+                    </View>
+                  )}
+                </Pressable>
+
+                <View style={styles.modalBtnRow}>
+                  <Pressable
+                    onPress={() => setShowAIModal(false)}
+                    disabled={isTestingConnection}
+                    style={({ pressed }) => [
+                      styles.cancelBtn,
+                      isTestingConnection && { opacity: 0.6 },
+                      pressed && styles.themeButtonPressed,
+                    ]}
+                  >
+                    <Text style={styles.cancelBtnText}>Cancel</Text>
+                  </Pressable>
+
+                  <Pressable
+                    onPress={handleSaveAISettings}
+                    disabled={isTestingConnection}
+                    style={({ pressed }) => [
+                      styles.saveBtn,
+                      isTestingConnection && { opacity: 0.6 },
+                      pressed && styles.themeButtonPressed,
+                    ]}
+                  >
+                    {isTestingConnection ? (
+                      <ActivityIndicator size="small" color={theme.white} />
+                    ) : (
+                      <Text style={styles.saveBtnText}>Save Settings</Text>
+                    )}
+                  </Pressable>
+                </View>
+              </View>
+            </ScrollView>
+          </Animated.View>
+        </View>
+      </Modal>
 
       {/* ========================================== */}
       {/* 1. App Preferences Modal */}
@@ -1227,5 +1620,114 @@ const makeStyles = (theme: Theme) =>
       fontSize: FONT_SIZE.sm + 1,
       fontFamily: FONT_FAMILY.medium,
       color: theme.mutedText,
+    },
+    inputContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      backgroundColor: theme.tagBg,
+      borderColor: theme.cardBorder,
+      borderWidth: 1,
+      borderRadius: BORDER_RADIUS.md,
+      paddingHorizontal: SPACING.md,
+      height: 52,
+    },
+    inputField: {
+      flex: 1,
+      fontSize: FONT_SIZE.md - 1,
+      fontFamily: FONT_FAMILY.medium,
+      color: theme.text,
+      paddingVertical: 0,
+    },
+    inputIcon: {
+      padding: SPACING.xs,
+    },
+    modelListContainer: {
+      gap: SPACING.sm,
+    },
+    modelRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      paddingVertical: SPACING.md,
+      paddingHorizontal: SPACING.md,
+      borderRadius: BORDER_RADIUS.md,
+      backgroundColor: theme.tagBg,
+      borderWidth: 1,
+      borderColor: theme.cardBorder,
+      gap: SPACING.md,
+    },
+    modelRowActive: {
+      backgroundColor: theme.activeTab,
+      borderColor: theme.activeTab,
+    },
+    modelText: {
+      fontSize: FONT_SIZE.md - 1,
+      fontFamily: FONT_FAMILY.medium,
+      color: theme.text,
+    },
+    modelTextActive: {
+      color: theme.white,
+      fontFamily: FONT_FAMILY.semibold,
+      fontWeight: FONT_WEIGHT.semibold,
+    },
+    modalActionGroup: {
+      gap: SPACING.md,
+      marginTop: SPACING.md,
+    },
+    testBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: SPACING.md,
+      borderRadius: BORDER_RADIUS.md,
+      backgroundColor: theme.tagBg,
+      borderWidth: 1,
+      borderColor: theme.activeTab,
+      height: 50,
+    },
+    testBtnContent: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACING.xs,
+    },
+    testBtnText: {
+      fontSize: FONT_SIZE.md - 1,
+      fontFamily: FONT_FAMILY.semibold,
+      fontWeight: FONT_WEIGHT.semibold,
+      color: theme.activeTab,
+    },
+    modalBtnRow: {
+      flexDirection: "row",
+      gap: SPACING.md,
+    },
+    cancelBtn: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: SPACING.md,
+      borderRadius: BORDER_RADIUS.md,
+      backgroundColor: theme.tagBg,
+      borderWidth: 1,
+      borderColor: theme.cardBorder,
+      height: 50,
+    },
+    cancelBtnText: {
+      fontSize: FONT_SIZE.md - 1,
+      fontFamily: FONT_FAMILY.medium,
+      color: theme.mutedText,
+    },
+    saveBtn: {
+      flex: 2,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: SPACING.md,
+      borderRadius: BORDER_RADIUS.md,
+      backgroundColor: theme.activeTab,
+      height: 50,
+    },
+    saveBtnText: {
+      fontSize: FONT_SIZE.md - 1,
+      fontFamily: FONT_FAMILY.semibold,
+      fontWeight: FONT_WEIGHT.semibold,
+      color: theme.white,
     },
   });

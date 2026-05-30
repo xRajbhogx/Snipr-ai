@@ -45,7 +45,6 @@ const loadSnippetsFromDb = (): Snippet[] => {
   try {
     return getAllSnippets();
   } catch (error) {
-    console.error("Failed to load snippets", error);
     return [];
   }
 };
@@ -72,7 +71,7 @@ const AllSnippetsScreen = () => {
       setSnippets(data);
       setSuccessAlertVisible(true);
     } catch (error) {
-      console.error("Failed to seed starter snippets in AllSnippetsScreen:", error);
+      // Ignore
     }
   }, []);
 
@@ -81,7 +80,7 @@ const AllSnippetsScreen = () => {
       deleteAllSnippets();
       setSnippets([]);
     } catch (error) {
-      console.error("Failed to delete all snippets", error);
+      // Ignore
     }
   }, []);
 

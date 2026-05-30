@@ -558,7 +558,6 @@ async function getDirectorySizeRecursively(dirPath: string): Promise<number> {
     }
     return total;
   } catch (error) {
-    console.error(`Error calculating size recursively for ${dirPath}:`, error);
     return 0;
   }
 }
@@ -645,10 +644,7 @@ export async function saveSnippetImage(
       try {
         await FileSystem.deleteAsync(imageUri, { idempotent: true });
       } catch (deleteError) {
-        console.warn(
-          `Failed to clean up source imageUri after copy fallback: ${imageUri}`,
-          deleteError,
-        );
+        // Ignore
       }
     }
 

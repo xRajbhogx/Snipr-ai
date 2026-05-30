@@ -84,7 +84,6 @@ export async function generateGeminiContent(
 
     return textResult;
   } catch (error: any) {
-    console.error("Gemini API request failed:", error);
     throw error;
   }
 }

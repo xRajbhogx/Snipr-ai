@@ -49,7 +49,7 @@ export async function loadPreferences(): Promise<UserPreferences> {
       return prefs;
     }
   } catch (error) {
-    console.error("Failed to load user preferences:", error);
+    // Fail silently
   }
   cachedPreferences = DEFAULT_PREFERENCES;
   return DEFAULT_PREFERENCES;
@@ -65,7 +65,7 @@ export async function savePreferences(update: Partial<UserPreferences>): Promise
     cachedPreferences = merged;
     await AsyncStorage.setItem(PREFS_KEY, JSON.stringify(merged));
   } catch (error) {
-    console.error("Failed to save user preferences:", error);
+    // Fail silently
   }
 }
 

@@ -51,7 +51,7 @@ const FeaturedSnippetCard = () => {
             setLatestSnippet(null);
           }
         } catch (error) {
-          console.error("Error fetching latest snippet:", error);
+          // Ignore
         }
       };
       fetchSnippet();

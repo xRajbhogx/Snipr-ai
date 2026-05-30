@@ -32,7 +32,7 @@ const HomeScreen = () => {
       const snippets = getAllSnippets();
       setRecentSnippets(snippets.slice(0, 3));
     } catch (error) {
-      console.error("Error fetching recent snippets:", error);
+      // Ignore
     }
   }, []);
 
@@ -49,7 +49,7 @@ const HomeScreen = () => {
       setRefreshTrigger((prev) => prev + 1);
       setAlertVisible(true);
     } catch (error) {
-      console.error("Failed to seed demo snippets:", error);
+      // Ignore
     }
   }, [loadSnippets]);
 

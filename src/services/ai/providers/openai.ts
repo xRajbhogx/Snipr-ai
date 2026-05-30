@@ -78,7 +78,6 @@ export async function generateOpenAIContent(
 
     return textResult;
   } catch (error: any) {
-    console.error("OpenAI API request failed:", error);
     throw error;
   }
 }

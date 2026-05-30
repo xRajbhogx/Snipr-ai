@@ -56,7 +56,6 @@ const SnippetDetailScreen = () => {
       // Navigate to Home screen and request opening the exports directory modal
       router.navigate("/(tabs)/home?openModal=exports");
     } catch (error) {
-      console.error("Failed to export snippet:", error);
       showAlert("Export Failed", "An error occurred while exporting the snippet.");
     }
   };
@@ -99,7 +98,7 @@ const SnippetDetailScreen = () => {
           const data = getSnippetById(Number(id));
           setSnippet(data);
         } catch (error) {
-          console.error("Failed to load snippet:", error);
+          // Ignore
         }
       }
     }, [id])
@@ -125,7 +124,7 @@ const SnippetDetailScreen = () => {
           favorite: snippet.favorite ? 0 : 1,
         });
       } catch (error) {
-        console.error("Failed to toggle favorite", error);
+        // Ignore
       }
     }
   };
@@ -142,7 +141,6 @@ const SnippetDetailScreen = () => {
             deleteSnippet(snippet.id);
             router.back();
           } catch (error) {
-            console.error("Failed to delete snippet:", error);
             showAlert(
               "Database Error",
               "Unable to delete snippet. Please check local database storage."
@@ -160,7 +158,7 @@ const SnippetDetailScreen = () => {
         setToastMessage("Code copied to clipboard!");
         setToastVisible(true);
       } catch (error) {
-        console.error("Failed to copy code to clipboard:", error);
+        // Ignore
       }
     }
   };
@@ -172,7 +170,7 @@ const SnippetDetailScreen = () => {
         message: `${snippet.title}\n\n${snippet.code}`,
       });
     } catch (error) {
-      console.error("Failed to share", error);
+      // Ignore
     }
   };
 
@@ -382,7 +380,7 @@ const SnippetDetailScreen = () => {
                         message: "Snippet Screenshot",
                       });
                     } catch (err) {
-                      console.error("Failed to share screenshot:", err);
+                      // Ignore
                     }
                   }}
                   style={styles.closeViewBtn}

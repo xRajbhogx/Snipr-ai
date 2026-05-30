@@ -135,7 +135,7 @@ const CreateSnippetScreen = () => {
           setScreenshotPath(snippet.screenshot_path || null);
         }
       } catch (error) {
-        console.error("Failed to load snippet for editing:", error);
+        // Ignore
       }
     } else {
       // Apply the user's saved default language when creating a new snippet
@@ -200,7 +200,6 @@ const CreateSnippetScreen = () => {
         );
       }
     } catch (error) {
-      console.error("Failed to read from clipboard:", error);
       showAlert(
         "Paste Failed",
         "Unable to access clipboard. Please check app permissions.",
@@ -234,7 +233,6 @@ const CreateSnippetScreen = () => {
         showToast("Screenshot attached!");
       }
     } catch (error) {
-      console.error("Error picking screenshot:", error);
       showAlert("Attachment Failed", "An error occurred while picking the screenshot.");
     } finally {
       setIsScanningOcr(false);
@@ -280,7 +278,7 @@ const CreateSnippetScreen = () => {
           finalScreenshotPath = await renameFile(screenshotPath, title.trim());
           setScreenshotPath(finalScreenshotPath);
         } catch (renameErr) {
-          console.error("Failed to rename screenshot to title:", renameErr);
+          // Ignore
         }
       }
 
@@ -320,7 +318,6 @@ const CreateSnippetScreen = () => {
         ],
       );
     } catch (error) {
-      console.error("Save error:", error);
       showAlert(
         "Database Error",
         isEditing

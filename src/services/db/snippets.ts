@@ -114,7 +114,6 @@ export function getDashboardStats() {
       trash: 0,
     };
   } catch (error) {
-    console.error("Failed to fetch dashboard stats:", error);
     return {
       snippets: 0,
       favorites: 0,
@@ -280,6 +279,6 @@ export class DatabaseManager {
       );
     }
   } catch (error) {
-    console.error("Failed to seed demo snippets:", error);
+    // Ignore
   }
 }

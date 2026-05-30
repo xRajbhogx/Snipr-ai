@@ -36,7 +36,7 @@ function RootLayoutContent() {
             closeDatabase();
             deleteDatabaseSync('snipr.db');
           } catch (dbErr) {
-            console.error("Failed to delete database:", dbErr);
+            // Ignore
           }
 
           // 2. Delete SQLite folder in documents directory (just in case)
@@ -54,7 +54,7 @@ function RootLayoutContent() {
           await FileSystem.deleteAsync(resetFileUri, { idempotent: true });
         }
       } catch (e) {
-        console.error(e);
+        // Ignore
       }
 
       // Now run migrations and init file system
@@ -62,7 +62,6 @@ function RootLayoutContent() {
         runMigrations();
         setDbReady(true);
       } catch (error) {
-        console.error(error);
         setDbReady(true); // Proceed anyway
       }
 
@@ -70,14 +69,13 @@ function RootLayoutContent() {
         await initializeFileSystem();
         setFsReady(true);
       } catch (error) {
-        console.error(error);
         setFsReady(true); // Proceed anyway
       }
 
       try {
         await warmPreferencesCache();
       } catch (error) {
-        console.error("Failed to warm preferences cache:", error);
+        // Ignore
       }
     }
 

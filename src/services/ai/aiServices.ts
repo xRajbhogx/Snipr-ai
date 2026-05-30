@@ -27,8 +27,7 @@ export async function getStoredAIProvider(): Promise<AIProvider> {
   try {
     const provider = await AsyncStorage.getItem(PROVIDER_STORAGE_KEY);
     return (provider as AIProvider) || "gemini";
-  } catch (error) {
-    console.error("Failed to read stored AI provider:", error);
+  } catch {
     return "gemini";
   }
 }
@@ -39,8 +38,8 @@ export async function getStoredAIProvider(): Promise<AIProvider> {
 export async function setStoredAIProvider(provider: AIProvider): Promise<void> {
   try {
     await AsyncStorage.setItem(PROVIDER_STORAGE_KEY, provider);
-  } catch (error) {
-    console.error("Failed to store AI provider:", error);
+  } catch {
+    // Silent fail
   }
 }
 
@@ -50,8 +49,7 @@ export async function setStoredAIProvider(provider: AIProvider): Promise<void> {
 export async function getStoredModel(provider: AIProvider): Promise<string | null> {
   try {
     return await AsyncStorage.getItem(getModelStorageKey(provider));
-  } catch (error) {
-    console.error(`Failed to retrieve model for ${provider}:`, error);
+  } catch {
     return null;
   }
 }
@@ -62,8 +60,8 @@ export async function getStoredModel(provider: AIProvider): Promise<string | nul
 export async function setStoredModel(provider: AIProvider, model: string): Promise<void> {
   try {
     await AsyncStorage.setItem(getModelStorageKey(provider), model);
-  } catch (error) {
-    console.error(`Failed to store model for ${provider}:`, error);
+  } catch {
+    // Silent fail
   }
 }
 
@@ -76,8 +74,7 @@ export async function getStoredAPIKey(provider: AIProvider): Promise<string | nu
       return localStorage.getItem(getSecureApiKey(provider));
     }
     return await SecureStore.getItemAsync(getSecureApiKey(provider));
-  } catch (error) {
-    console.error(`Failed to retrieve API key securely for ${provider}:`, error);
+  } catch {
     return null;
   }
 }
@@ -93,7 +90,6 @@ export async function setStoredAPIKey(provider: AIProvider, apiKey: string): Pro
     }
     await SecureStore.setItemAsync(getSecureApiKey(provider), apiKey);
   } catch (error) {
-    console.error(`Failed to store API key securely for ${provider}:`, error);
     throw error;
   }
 }
@@ -109,7 +105,6 @@ export async function clearStoredAPIKey(provider: AIProvider): Promise<void> {
     }
     await SecureStore.deleteItemAsync(getSecureApiKey(provider));
   } catch (error) {
-    console.error(`Failed to clear API key securely for ${provider}:`, error);
     throw error;
   }
 }

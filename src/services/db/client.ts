@@ -15,7 +15,7 @@ export function closeDatabase() {
     try {
       databaseInstance.closeSync();
     } catch (err) {
-      console.error("Error closing database:", err);
+      // Ignore
     }
     databaseInstance = null;
   }

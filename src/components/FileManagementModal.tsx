@@ -125,7 +125,6 @@ const FileManagementModal = ({
       const list = await listFiles(directory);
       setFiles(list);
     } catch (error) {
-      console.error(`Error listing files for directory '${directory}':`, error);
       showToast(`Failed to load files from ${directory}.`);
     } finally {
       setIsLoading(false);
@@ -150,7 +149,6 @@ const FileManagementModal = ({
           setViewingFileContent(content);
         })
         .catch((error) => {
-          console.error("Failed to read file:", error);
           showToast("Could not open file content.");
           setViewingFile(null);
         })
@@ -190,7 +188,6 @@ const FileManagementModal = ({
         showCustomAlert("Download Failed", `Server returned status code: ${result.status}`);
       }
     } catch (error) {
-      console.error("Download error:", error);
       showCustomAlert("Download Error", "Unable to download file. Please check URL and internet connection.");
     } finally {
       setIsDownloading(false);
@@ -213,7 +210,6 @@ const FileManagementModal = ({
               await loadFilesList();
               if (onRefreshStats) onRefreshStats();
             } catch (error) {
-              console.error("Delete error:", error);
               showToast("Failed to delete file.");
             }
           },
@@ -228,7 +224,7 @@ const FileManagementModal = ({
         await Clipboard.setStringAsync(viewingFileContent);
         showToast("Content copied to clipboard!");
       } catch (err) {
-        console.error("Failed to copy:", err);
+        // Ignore
       }
     }
   };
@@ -249,7 +245,6 @@ const FileManagementModal = ({
         });
       }
     } catch (err) {
-      console.error("Failed to share file:", err);
       showToast("Failed to share file.");
     }
   };

@@ -43,7 +43,6 @@ const loadFavouritesFromDb = (): Snippet[] => {
   try {
     return getFavorites();
   } catch (error) {
-    console.error("Failed to load favourites", error);
     return [];
   }
 };

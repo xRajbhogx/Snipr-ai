@@ -134,21 +134,21 @@ const HomeStatsGrid = () => {
         const exportsList = await listFiles("exports");
         exportsCount = exportsList.length;
       } catch (err) {
-        console.error("Error reading exports count:", err);
+        // Ignore
       }
       
       try {
         const imagesList = await listFiles("images");
         imagesCount = imagesList.length;
       } catch (err) {
-        console.error("Error reading images count:", err);
+        // Ignore
       }
       
       try {
         const downloadsList = await listFiles("downloads");
         downloadsCount = downloadsList.length;
       } catch (err) {
-        console.error("Error reading downloads count:", err);
+        // Ignore
       }
 
       setStats({
@@ -160,7 +160,7 @@ const HomeStatsGrid = () => {
         trash: counts.trash,
       });
     } catch (error) {
-      console.error("Error loading dashboard stats:", error);
+      // Ignore
     }
   }, []);
 
