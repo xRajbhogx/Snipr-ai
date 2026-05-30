@@ -64,7 +64,7 @@ const HomeScreen = () => {
         </View>
 
         <Pressable
-          onPress={() => router.push("/AllSnippetsScreen?focusSearch=true")}
+          onPress={() => router.push("/home/AllSnippetsScreen?focusSearch=true")}
           style={styles.searchWrap}
         >
           <HomeSearchBar editable={false} pointerEvents="none" />
@@ -75,7 +75,7 @@ const HomeScreen = () => {
           <View style={styles.recentSection}>
             <View style={styles.recentHeader}>
               <Text style={styles.recentTitle}>Recent Snippets</Text>
-              <Pressable onPress={() => router.push('/AllSnippetsScreen')}>
+              <Pressable onPress={() => router.push("/home/AllSnippetsScreen")}>
                 <Text style={styles.viewAllText}>View All</Text>
               </Pressable>
             </View>

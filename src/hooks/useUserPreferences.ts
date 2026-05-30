@@ -15,6 +15,25 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   sortOrder: "newest",
 };
 
+let cachedPreferences: UserPreferences | null = null;
+let preferencesLoadPromise: Promise<UserPreferences> | null = null;
+
+/**
+ * Loads preferences once per session and reuses the cached value.
+ */
+export function warmPreferencesCache(): Promise<UserPreferences> {
+  if (cachedPreferences) {
+    return Promise.resolve(cachedPreferences);
+  }
+  if (!preferencesLoadPromise) {
+    preferencesLoadPromise = loadPreferences().then((prefs) => {
+      cachedPreferences = prefs;
+      return prefs;
+    });
+  }
+  return preferencesLoadPromise;
+}
+
 /**
  * Reads all preferences from AsyncStorage in one call.
  */
@@ -22,11 +41,17 @@ export async function loadPreferences(): Promise<UserPreferences> {
   try {
     const raw = await AsyncStorage.getItem(PREFS_KEY);
     if (raw) {
-      return { ...DEFAULT_PREFERENCES, ...(JSON.parse(raw) as Partial<UserPreferences>) };
+      const prefs = {
+        ...DEFAULT_PREFERENCES,
+        ...(JSON.parse(raw) as Partial<UserPreferences>),
+      };
+      cachedPreferences = prefs;
+      return prefs;
     }
   } catch (error) {
     console.error("Failed to load user preferences:", error);
   }
+  cachedPreferences = DEFAULT_PREFERENCES;
   return DEFAULT_PREFERENCES;
 }
 
@@ -37,6 +62,7 @@ export async function savePreferences(update: Partial<UserPreferences>): Promise
   try {
     const current = await loadPreferences();
     const merged = { ...current, ...update };
+    cachedPreferences = merged;
     await AsyncStorage.setItem(PREFS_KEY, JSON.stringify(merged));
   } catch (error) {
     console.error("Failed to save user preferences:", error);
@@ -48,12 +74,14 @@ export async function savePreferences(update: Partial<UserPreferences>): Promise
  * All preference fields are read from AsyncStorage once on mount.
  */
 export function useUserPreferences() {
-  const [preferences, setPreferences] = useState<UserPreferences>(DEFAULT_PREFERENCES);
-  const [isLoading, setIsLoading] = useState(true);
+  const [preferences, setPreferences] = useState<UserPreferences>(
+    () => cachedPreferences ?? DEFAULT_PREFERENCES,
+  );
+  const [isLoading, setIsLoading] = useState(() => cachedPreferences === null);
 
   useEffect(() => {
     let cancelled = false;
-    loadPreferences().then((prefs) => {
+    warmPreferencesCache().then((prefs) => {
       if (!cancelled) {
         setPreferences(prefs);
         setIsLoading(false);
@@ -67,6 +95,7 @@ export function useUserPreferences() {
   const updatePreferences = useCallback(
     async (update: Partial<UserPreferences>) => {
       const next = { ...preferences, ...update };
+      cachedPreferences = next;
       setPreferences(next);
       await savePreferences(update);
     },

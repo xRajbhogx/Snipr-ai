@@ -1,4 +1,3 @@
-import CustomAlert from "@/components/CustomAlert";
 import HomeSearchBar from "@/components/HomeSearchBar";
 import SnippetCard from "@/components/SnippetCard";
 import {
@@ -11,12 +10,13 @@ import {
   Theme,
 } from "@/constants/theme";
 import { useGlobalStyles } from "@/constants/useGlobalStyles";
+import { useHideTabBar } from "@/hooks/useHideTabBar";
 import { useTheme } from "@/hooks/useTheme";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
-import { getAllSnippets, deleteAllSnippets, seedDemoSnippets } from "@/services/db/snippets";
+import { getFavorites } from "@/services/db/snippets";
 import { Snippet } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
   FlatList,
@@ -24,7 +24,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from "react-native";
 
@@ -38,49 +37,35 @@ const LANGUAGE_ICONS: Record<string, string> = {
   CSS: "language-css3",
 };
 
-const AllSnippetsScreen = () => {
+const loadFavouritesFromDb = (): Snippet[] => {
+  try {
+    return getFavorites();
+  } catch (error) {
+    console.error("Failed to load favourites", error);
+    return [];
+  }
+};
+
+const FavouritesScreen = () => {
   const theme = useTheme();
+  useHideTabBar();
   const globalStyles = useGlobalStyles(theme);
   const styles = makeStyles(theme);
   const { preferences } = useUserPreferences();
-  const [snippets, setSnippets] = useState<Snippet[]>([]);
+
+  const [favourites, setFavourites] = useState<Snippet[]>(loadFavouritesFromDb);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
-  const [alertVisible, setAlertVisible] = useState(false);
-  const [successAlertVisible, setSuccessAlertVisible] = useState(false);
-
-  const { focusSearch } = useLocalSearchParams<{ focusSearch?: string }>();
-  const searchInputRef = React.useRef<TextInput | null>(null);
-
-  const handleSeed = () => {
-    try {
-      seedDemoSnippets();
-      const data = getAllSnippets();
-      setSnippets(data);
-      setSuccessAlertVisible(true);
-    } catch (error) {
-      console.error("Failed to seed starter snippets in AllSnippetsScreen:", error);
-    }
-  };
-
-  const handleDeleteAll = () => {
-    try {
-      deleteAllSnippets();
-      setSnippets([]);
-    } catch (error) {
-      console.error("Failed to delete all snippets", error);
-    }
-  };
 
   const availableLanguages = React.useMemo(() => {
-    const langs = snippets
+    const langs = favourites
       .map((s) => s.language)
       .filter((lang): lang is string => typeof lang === "string" && lang.trim().length > 0);
     return ["All", ...Array.from(new Set(langs))];
-  }, [snippets]);
+  }, [favourites]);
 
-  const filteredSnippets = React.useMemo(() => {
-    return snippets.filter((snippet) => {
+  const filteredFavourites = React.useMemo(() => {
+    return favourites.filter((snippet) => {
       const matchesLanguage =
         !selectedLanguage || selectedLanguage === "All" || snippet.language === selectedLanguage;
       
@@ -94,10 +79,10 @@ const AllSnippetsScreen = () => {
 
       return matchesLanguage && matchesSearch;
     });
-  }, [snippets, selectedLanguage, searchQuery]);
+  }, [favourites, selectedLanguage, searchQuery]);
 
-  const sortedSnippets = React.useMemo(() => {
-    const list = [...filteredSnippets];
+  const sortedFavourites = React.useMemo(() => {
+    const list = [...filteredFavourites];
     if (preferences.sortOrder === "newest") {
       list.sort((a, b) => b.created_at - a.created_at);
     } else if (preferences.sortOrder === "oldest") {
@@ -106,22 +91,12 @@ const AllSnippetsScreen = () => {
       list.sort((a, b) => a.title.localeCompare(b.title));
     }
     return list;
-  }, [filteredSnippets, preferences.sortOrder]);
+  }, [filteredFavourites, preferences.sortOrder]);
 
   useFocusEffect(
     useCallback(() => {
-      try {
-        const data = getAllSnippets();
-        setSnippets(data);
-        if (focusSearch === "true") {
-          setTimeout(() => {
-            searchInputRef.current?.focus();
-          }, 100);
-        }
-      } catch (error) {
-        console.error("Failed to load snippets", error);
-      }
-    }, [focusSearch])
+      setFavourites(loadFavouritesFromDb());
+    }, []),
   );
 
   const handleBack = () => {
@@ -129,56 +104,22 @@ const AllSnippetsScreen = () => {
   };
 
   const renderEmpty = () => {
-    const hasAnySnippets = snippets.length > 0;
+    const hasAnyFavourites = favourites.length > 0;
     return (
       <View style={styles.emptyContainer}>
         <MaterialCommunityIcons
-          name={hasAnySnippets ? "text-search-variant" : "code-tags"}
+          name={hasAnyFavourites ? "text-search-variant" : "star-outline"}
           size={ICON_SIZE.xl * 2}
           color={theme.inactiveTab}
         />
         <Text style={styles.emptyTitle}>
-          {hasAnySnippets ? "No match found" : "No snippets found"}
+          {hasAnyFavourites ? "No match found" : "No Favourites Yet"}
         </Text>
         <Text style={styles.emptySubtext}>
-          {hasAnySnippets
+          {hasAnyFavourites
             ? "Try adjusting your search or language filter."
-            : "You haven't created any snippets yet."}
+            : "Tap the star icon on any snippet to save it here."}
         </Text>
-        {/* CTA Buttons */}
-        <View style={styles.actionContainer}>
-          <Pressable
-            onPress={() => router.push("/CreateSnippetScreen")}
-            style={({ pressed }) => [
-              styles.primaryButton,
-              pressed && styles.buttonPressed,
-            ]}
-          >
-            <MaterialCommunityIcons
-              name="plus"
-              size={18}
-              color={theme.white}
-              style={styles.buttonIcon}
-            />
-            <Text style={styles.primaryButtonText}>Create First Snippet</Text>
-          </Pressable>
-        
-          <Pressable
-            onPress={handleSeed}
-            style={({ pressed }) => [
-              styles.secondaryButton,
-              pressed && styles.buttonPressed,
-            ]}
-          >
-            <MaterialCommunityIcons
-              name="database-import-outline"
-              size={18}
-              color={theme.text}
-              style={styles.buttonIcon}
-            />
-            <Text style={styles.secondaryButtonText}>Import Starter Snippets</Text>
-          </Pressable>
-        </View>
       </View>
     );
   };
@@ -195,35 +136,13 @@ const AllSnippetsScreen = () => {
           />
         </Pressable>
         <Text style={styles.headerTitle} numberOfLines={1}>
-          All Snippets
+          Favourites
         </Text>
-        {snippets.length > 0 ? (
-          <Pressable
-            onPress={() => setAlertVisible(true)}
-            style={({ pressed }) => [
-              styles.iconButton,
-              pressed && styles.iconButtonPressed,
-            ]}
-          >
-            <MaterialCommunityIcons
-              name="trash-can-outline"
-              size={ICON_SIZE.xl}
-              color={theme.activeTab}
-            />
-          </Pressable>
-        ) : (
-          <View style={styles.placeholderButton}>
-            <MaterialCommunityIcons
-              name="trash-can-outline"
-              size={ICON_SIZE.xl}
-              color={theme.inactiveTab}
-            />
-          </View>
-        )}
+        <View style={styles.headerSpacer} />
       </View>
 
       <View style={styles.searchWrap}>
-        <HomeSearchBar ref={searchInputRef} value={searchQuery} onChangeText={setSearchQuery} />
+        <HomeSearchBar value={searchQuery} onChangeText={setSearchQuery} />
       </View>
 
       {/* Language Chips */}
@@ -263,43 +182,18 @@ const AllSnippetsScreen = () => {
       )}
 
       <FlatList
-        data={sortedSnippets}
+        data={sortedFavourites}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => <SnippetCard snippet={item} />}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={renderEmpty}
       />
-
-      <CustomAlert
-        visible={alertVisible}
-        title="Delete All Snippets"
-        message="Are you sure you want to delete all snippets? This action is permanent and cannot be undone."
-        onClose={() => setAlertVisible(false)}
-        buttons={[
-          {
-            text: "Cancel",
-            style: "cancel",
-          },
-          {
-            text: "Delete All",
-            style: "destructive",
-            onPress: handleDeleteAll,
-          },
-        ]}
-      />
-
-      <CustomAlert
-        visible={successAlertVisible}
-        title="Starter Snippets Imported"
-        message="Four developer-oriented starter snippets have been successfully added to your local vault."
-        onClose={() => setSuccessAlertVisible(false)}
-      />
     </View>
   );
 };
 
-export default AllSnippetsScreen;
+export default FavouritesScreen;
 
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
@@ -314,15 +208,6 @@ const makeStyles = (theme: Theme) =>
       borderRadius: BORDER_RADIUS.full,
       backgroundColor: theme.card,
     },
-    iconButtonPressed: {
-      opacity: 0.7,
-    },
-    placeholderButton: {
-      padding: SPACING.sm,
-      borderRadius: BORDER_RADIUS.full,
-      backgroundColor: theme.card,
-      opacity: 0.4,
-    },
     headerTitle: {
       flex: 1,
       textAlign: "center",
@@ -330,6 +215,9 @@ const makeStyles = (theme: Theme) =>
       fontFamily: FONT_FAMILY.bold,
       color: theme.text,
       marginHorizontal: SPACING.md,
+    },
+    headerSpacer: {
+      width: ICON_SIZE.xl + SPACING.sm * 2,
     },
     searchWrap: {
       marginTop: SPACING.md,
@@ -391,45 +279,7 @@ const makeStyles = (theme: Theme) =>
       fontFamily: FONT_FAMILY.regular,
       color: theme.mutedText,
       marginTop: SPACING.sm,
-    },
-    actionContainer: {
-      width: "100%",
-      gap: SPACING.sm,
-      marginTop: SPACING.lg,
-    },
-    primaryButton: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: theme.activeTab,
-      paddingVertical: SPACING.md,
-      borderRadius: BORDER_RADIUS.md,
-      ...SHADOW.sm,
-    },
-    primaryButtonText: {
-      fontSize: FONT_SIZE.sm + 2,
-      fontFamily: FONT_FAMILY.semibold,
-      color: theme.white,
-    },
-    secondaryButton: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: theme.tagBg,
-      borderColor: theme.cardBorder,
-      borderWidth: 1,
-      paddingVertical: SPACING.md,
-      borderRadius: BORDER_RADIUS.md,
-    },
-    secondaryButtonText: {
-      fontSize: FONT_SIZE.sm + 2,
-      fontFamily: FONT_FAMILY.semibold,
-      color: theme.text,
-    },
-    buttonPressed: {
-      opacity: 0.85,
-    },
-    buttonIcon: {
-      marginRight: SPACING.xs,
+      textAlign: "center",
+      paddingHorizontal: SPACING.xl,
     },
   });

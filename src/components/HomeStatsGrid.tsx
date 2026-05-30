@@ -185,10 +185,10 @@ const HomeStatsGrid = () => {
   const handlePressCard = (key: string) => {
     switch (key) {
       case "snippets":
-        router.push("/AllSnippetsScreen");
+        router.push("/home/AllSnippetsScreen");
         break;
       case "favorites":
-        router.push("/FavouritesScreen");
+        router.push("/home/FavouritesScreen");
         break;
       case "files":
         setSelectedDir("exports");

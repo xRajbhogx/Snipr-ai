@@ -1,3 +1,4 @@
+import CustomAlert from "@/components/CustomAlert";
 import HomeSearchBar from "@/components/HomeSearchBar";
 import SnippetCard from "@/components/SnippetCard";
 import {
@@ -10,12 +11,13 @@ import {
   Theme,
 } from "@/constants/theme";
 import { useGlobalStyles } from "@/constants/useGlobalStyles";
+import { useHideTabBar } from "@/hooks/useHideTabBar";
 import { useTheme } from "@/hooks/useTheme";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
-import { getFavorites } from "@/services/db/snippets";
+import { getAllSnippets, deleteAllSnippets, seedDemoSnippets } from "@/services/db/snippets";
 import { Snippet } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
   FlatList,
@@ -23,13 +25,9 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View,
 } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from "react-native-reanimated";
 
 const LANGUAGE_ICONS: Record<string, string> = {
   TypeScript: "language-typescript",
@@ -41,33 +39,59 @@ const LANGUAGE_ICONS: Record<string, string> = {
   CSS: "language-css3",
 };
 
-const FavouritesScreen = () => {
+const loadSnippetsFromDb = (): Snippet[] => {
+  try {
+    return getAllSnippets();
+  } catch (error) {
+    console.error("Failed to load snippets", error);
+    return [];
+  }
+};
+
+const AllSnippetsScreen = () => {
   const theme = useTheme();
+  useHideTabBar();
   const globalStyles = useGlobalStyles(theme);
   const styles = makeStyles(theme);
   const { preferences } = useUserPreferences();
-  
-  const [favourites, setFavourites] = useState<Snippet[]>([]);
+  const [snippets, setSnippets] = useState<Snippet[]>(loadSnippetsFromDb);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState<string | null>(null);
-  
-  const emptyOpacity = useSharedValue(0);
-  const emptyTranslateY = useSharedValue(20);
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [successAlertVisible, setSuccessAlertVisible] = useState(false);
 
-  const animatedEmptyStyle = useAnimatedStyle(() => ({
-    opacity: emptyOpacity.value,
-    transform: [{ translateY: emptyTranslateY.value }],
-  }));
+  const { focusSearch } = useLocalSearchParams<{ focusSearch?: string }>();
+  const searchInputRef = React.useRef<TextInput | null>(null);
+
+  const handleSeed = () => {
+    try {
+      seedDemoSnippets();
+      const data = getAllSnippets();
+      setSnippets(data);
+      setSuccessAlertVisible(true);
+    } catch (error) {
+      console.error("Failed to seed starter snippets in AllSnippetsScreen:", error);
+    }
+  };
+
+  const handleDeleteAll = () => {
+    try {
+      deleteAllSnippets();
+      setSnippets([]);
+    } catch (error) {
+      console.error("Failed to delete all snippets", error);
+    }
+  };
 
   const availableLanguages = React.useMemo(() => {
-    const langs = favourites
+    const langs = snippets
       .map((s) => s.language)
       .filter((lang): lang is string => typeof lang === "string" && lang.trim().length > 0);
     return ["All", ...Array.from(new Set(langs))];
-  }, [favourites]);
+  }, [snippets]);
 
-  const filteredFavourites = React.useMemo(() => {
-    return favourites.filter((snippet) => {
+  const filteredSnippets = React.useMemo(() => {
+    return snippets.filter((snippet) => {
       const matchesLanguage =
         !selectedLanguage || selectedLanguage === "All" || snippet.language === selectedLanguage;
       
@@ -81,10 +105,10 @@ const FavouritesScreen = () => {
 
       return matchesLanguage && matchesSearch;
     });
-  }, [favourites, selectedLanguage, searchQuery]);
+  }, [snippets, selectedLanguage, searchQuery]);
 
-  const sortedFavourites = React.useMemo(() => {
-    const list = [...filteredFavourites];
+  const sortedSnippets = React.useMemo(() => {
+    const list = [...filteredSnippets];
     if (preferences.sortOrder === "newest") {
       list.sort((a, b) => b.created_at - a.created_at);
     } else if (preferences.sortOrder === "oldest") {
@@ -93,34 +117,18 @@ const FavouritesScreen = () => {
       list.sort((a, b) => a.title.localeCompare(b.title));
     }
     return list;
-  }, [filteredFavourites, preferences.sortOrder]);
-
-  const filteredCount = filteredFavourites.length;
-
-  React.useEffect(() => {
-    if (filteredCount === 0) {
-      emptyOpacity.value = 0;
-      emptyTranslateY.value = 20;
-      emptyOpacity.value = withTiming(1, { duration: 400 });
-      emptyTranslateY.value = withTiming(0, { duration: 400 });
-    }
-  }, [filteredCount, emptyOpacity, emptyTranslateY]);
+  }, [filteredSnippets, preferences.sortOrder]);
 
   useFocusEffect(
     useCallback(() => {
-      try {
-        const data = getFavorites();
-        setFavourites(data);
-        if (data.length === 0) {
-          emptyOpacity.value = 0;
-          emptyTranslateY.value = 20;
-          emptyOpacity.value = withTiming(1, { duration: 400 });
-          emptyTranslateY.value = withTiming(0, { duration: 400 });
-        }
-      } catch (error) {
-        console.error("Failed to load favourites", error);
+      setSnippets(loadSnippetsFromDb());
+      if (focusSearch === "true") {
+        const frame = requestAnimationFrame(() => {
+          searchInputRef.current?.focus();
+        });
+        return () => cancelAnimationFrame(frame);
       }
-    }, [emptyOpacity, emptyTranslateY])
+    }, [focusSearch]),
   );
 
   const handleBack = () => {
@@ -128,23 +136,57 @@ const FavouritesScreen = () => {
   };
 
   const renderEmpty = () => {
-    const hasAnyFavourites = favourites.length > 0;
+    const hasAnySnippets = snippets.length > 0;
     return (
-      <Animated.View style={[styles.emptyContainer, animatedEmptyStyle]}>
+      <View style={styles.emptyContainer}>
         <MaterialCommunityIcons
-          name={hasAnyFavourites ? "text-search-variant" : "star-outline"}
+          name={hasAnySnippets ? "text-search-variant" : "code-tags"}
           size={ICON_SIZE.xl * 2}
           color={theme.inactiveTab}
         />
         <Text style={styles.emptyTitle}>
-          {hasAnyFavourites ? "No match found" : "No Favourites Yet"}
+          {hasAnySnippets ? "No match found" : "No snippets found"}
         </Text>
         <Text style={styles.emptySubtext}>
-          {hasAnyFavourites
+          {hasAnySnippets
             ? "Try adjusting your search or language filter."
-            : "Tap the star icon on any snippet to save it here."}
+            : "You haven't created any snippets yet."}
         </Text>
-      </Animated.View>
+        {/* CTA Buttons */}
+        <View style={styles.actionContainer}>
+          <Pressable
+            onPress={() => router.push("/CreateSnippetScreen")}
+            style={({ pressed }) => [
+              styles.primaryButton,
+              pressed && styles.buttonPressed,
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="plus"
+              size={18}
+              color={theme.white}
+              style={styles.buttonIcon}
+            />
+            <Text style={styles.primaryButtonText}>Create First Snippet</Text>
+          </Pressable>
+        
+          <Pressable
+            onPress={handleSeed}
+            style={({ pressed }) => [
+              styles.secondaryButton,
+              pressed && styles.buttonPressed,
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="database-import-outline"
+              size={18}
+              color={theme.text}
+              style={styles.buttonIcon}
+            />
+            <Text style={styles.secondaryButtonText}>Import Starter Snippets</Text>
+          </Pressable>
+        </View>
+      </View>
     );
   };
 
@@ -160,13 +202,35 @@ const FavouritesScreen = () => {
           />
         </Pressable>
         <Text style={styles.headerTitle} numberOfLines={1}>
-          Favourites
+          All Snippets
         </Text>
-        <View style={{ width: ICON_SIZE.xl + SPACING.sm * 2 }} />
+        {snippets.length > 0 ? (
+          <Pressable
+            onPress={() => setAlertVisible(true)}
+            style={({ pressed }) => [
+              styles.iconButton,
+              pressed && styles.iconButtonPressed,
+            ]}
+          >
+            <MaterialCommunityIcons
+              name="trash-can-outline"
+              size={ICON_SIZE.xl}
+              color={theme.activeTab}
+            />
+          </Pressable>
+        ) : (
+          <View style={styles.placeholderButton}>
+            <MaterialCommunityIcons
+              name="trash-can-outline"
+              size={ICON_SIZE.xl}
+              color={theme.inactiveTab}
+            />
+          </View>
+        )}
       </View>
 
       <View style={styles.searchWrap}>
-        <HomeSearchBar value={searchQuery} onChangeText={setSearchQuery} />
+        <HomeSearchBar ref={searchInputRef} value={searchQuery} onChangeText={setSearchQuery} />
       </View>
 
       {/* Language Chips */}
@@ -206,18 +270,43 @@ const FavouritesScreen = () => {
       )}
 
       <FlatList
-        data={sortedFavourites}
+        data={sortedSnippets}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => <SnippetCard snippet={item} />}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={renderEmpty}
       />
+
+      <CustomAlert
+        visible={alertVisible}
+        title="Delete All Snippets"
+        message="Are you sure you want to delete all snippets? This action is permanent and cannot be undone."
+        onClose={() => setAlertVisible(false)}
+        buttons={[
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "Delete All",
+            style: "destructive",
+            onPress: handleDeleteAll,
+          },
+        ]}
+      />
+
+      <CustomAlert
+        visible={successAlertVisible}
+        title="Starter Snippets Imported"
+        message="Four developer-oriented starter snippets have been successfully added to your local vault."
+        onClose={() => setSuccessAlertVisible(false)}
+      />
     </View>
   );
 };
 
-export default FavouritesScreen;
+export default AllSnippetsScreen;
 
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
@@ -231,6 +320,15 @@ const makeStyles = (theme: Theme) =>
       padding: SPACING.sm,
       borderRadius: BORDER_RADIUS.full,
       backgroundColor: theme.card,
+    },
+    iconButtonPressed: {
+      opacity: 0.7,
+    },
+    placeholderButton: {
+      padding: SPACING.sm,
+      borderRadius: BORDER_RADIUS.full,
+      backgroundColor: theme.card,
+      opacity: 0.4,
     },
     headerTitle: {
       flex: 1,
@@ -300,7 +398,45 @@ const makeStyles = (theme: Theme) =>
       fontFamily: FONT_FAMILY.regular,
       color: theme.mutedText,
       marginTop: SPACING.sm,
-      textAlign: "center",
-      paddingHorizontal: SPACING.xl,
+    },
+    actionContainer: {
+      width: "100%",
+      gap: SPACING.sm,
+      marginTop: SPACING.lg,
+    },
+    primaryButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: theme.activeTab,
+      paddingVertical: SPACING.md,
+      borderRadius: BORDER_RADIUS.md,
+      ...SHADOW.sm,
+    },
+    primaryButtonText: {
+      fontSize: FONT_SIZE.sm + 2,
+      fontFamily: FONT_FAMILY.semibold,
+      color: theme.white,
+    },
+    secondaryButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: theme.tagBg,
+      borderColor: theme.cardBorder,
+      borderWidth: 1,
+      paddingVertical: SPACING.md,
+      borderRadius: BORDER_RADIUS.md,
+    },
+    secondaryButtonText: {
+      fontSize: FONT_SIZE.sm + 2,
+      fontFamily: FONT_FAMILY.semibold,
+      color: theme.text,
+    },
+    buttonPressed: {
+      opacity: 0.85,
+    },
+    buttonIcon: {
+      marginRight: SPACING.xs,
     },
   });

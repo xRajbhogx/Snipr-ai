@@ -1,13 +1,18 @@
-import { runMigrations } from "@/services/db/migrations";
-import { Stack } from "expo-router/stack";
-import { useEffect, useState } from "react";
-import * as SplashScreen from "expo-splash-screen";
+import { getNavigationTheme } from "@/constants/navigationTheme";
 import { ThemeProvider, useThemeContext } from "@/context/ThemeContext";
+import { useTheme } from "@/hooks/useTheme";
+import { runMigrations } from "@/services/db/migrations";
+import { ThemeProvider as NavigationThemeProvider } from "@react-navigation/native";
+import { Stack } from "expo-router/stack";
+import * as SplashScreen from "expo-splash-screen";
+import * as SystemUI from "expo-system-ui";
+import { useEffect, useState } from "react";
 import { initializeFileSystem } from "@/services/fileService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system/legacy";
 import { deleteDatabaseSync } from "expo-sqlite";
 import { closeDatabase } from "@/services/db/client";
+import { warmPreferencesCache } from "@/hooks/useUserPreferences";
 
 // Prevent the splash screen from auto-hiding before resources are loaded.
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -15,6 +20,7 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 });
 
 function RootLayoutContent() {
+  const theme = useTheme();
   const { isThemeLoading } = useThemeContext();
   const [dbReady, setDbReady] = useState(false);
   const [fsReady, setFsReady] = useState(false);
@@ -67,6 +73,12 @@ function RootLayoutContent() {
         console.error(error);
         setFsReady(true); // Proceed anyway
       }
+
+      try {
+        await warmPreferencesCache();
+      } catch (error) {
+        console.error("Failed to warm preferences cache:", error);
+      }
     }
 
     initApp();
@@ -78,20 +90,34 @@ function RootLayoutContent() {
     }
   }, [isThemeLoading, dbReady, fsReady]);
 
+  useEffect(() => {
+    SystemUI.setBackgroundColorAsync(theme.background).catch(() => {});
+  }, [theme.background]);
+
   if (isThemeLoading || !dbReady || !fsReady) {
     return null;
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="(tabs)" />
-      <Stack.Screen name="CreateSnippetScreen"
-        options={{
-          presentation: 'modal',
-          headerShown: false
+    <NavigationThemeProvider value={getNavigationTheme(theme)}>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: theme.background },
+          animation: "simple_push",
         }}
-      />
-    </Stack>
+      >
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen
+          name="CreateSnippetScreen"
+          options={{
+            presentation: "modal",
+            headerShown: false,
+            contentStyle: { backgroundColor: theme.background },
+          }}
+        />
+      </Stack>
+    </NavigationThemeProvider>
   );
 }
 

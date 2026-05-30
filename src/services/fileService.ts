@@ -1,4 +1,4 @@
-import * as FileSystem from 'expo-file-system/legacy';
+import * as FileSystem from "expo-file-system/legacy";
 
 // ==========================================
 // Custom Error Classes
@@ -7,7 +7,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 export class FileNotFoundError extends Error {
   constructor(path: string) {
     super(`File not found at path: ${path}`);
-    this.name = 'FileNotFoundError';
+    this.name = "FileNotFoundError";
     Object.setPrototypeOf(this, FileNotFoundError.prototype);
   }
 }
@@ -15,7 +15,7 @@ export class FileNotFoundError extends Error {
 export class DirectoryNotFoundError extends Error {
   constructor(directory: string) {
     super(`Directory not found: ${directory}`);
-    this.name = 'DirectoryNotFoundError';
+    this.name = "DirectoryNotFoundError";
     Object.setPrototypeOf(this, DirectoryNotFoundError.prototype);
   }
 }
@@ -23,8 +23,10 @@ export class DirectoryNotFoundError extends Error {
 export class FileOperationError extends Error {
   public originalError: any;
   constructor(operation: string, path: string, originalError: any) {
-    super(`Failed to perform operation '${operation}' on path: ${path}. Error: ${originalError?.message || originalError}`);
-    this.name = 'FileOperationError';
+    super(
+      `Failed to perform operation '${operation}' on path: ${path}. Error: ${originalError?.message || originalError}`,
+    );
+    this.name = "FileOperationError";
     this.originalError = originalError;
     Object.setPrototypeOf(this, FileOperationError.prototype);
   }
@@ -42,7 +44,7 @@ export interface FileItem {
   extension: string;
 }
 
-export type DirectoryType = 'exports' | 'images' | 'downloads' | 'temp';
+export type DirectoryType = "exports" | "images" | "downloads" | "temp";
 
 export interface StorageStats {
   totalSize: number;
@@ -70,39 +72,44 @@ export const DOWNLOADS_DIR = `${DOCUMENTS_DIR}downloads/`;
 export const TEMP_DIR = `${DOCUMENTS_DIR}temp/`;
 
 const LANGUAGE_EXTENSIONS: Record<string, string> = {
-  javascript: 'js',
-  js: 'js',
-  typescript: 'ts',
-  ts: 'ts',
-  python: 'py',
-  py: 'py',
-  dart: 'dart',
-  json: 'json',
-  sql: 'sql',
-  text: 'txt',
-  txt: 'txt',
-  html: 'html',
-  css: 'css',
-  c: 'c',
-  cpp: 'cpp',
-  csharp: 'cs',
-  cs: 'cs',
-  go: 'go',
-  rust: 'rs',
-  rs: 'rs',
-  ruby: 'rb',
-  rb: 'rb',
-  php: 'php',
-  swift: 'swift',
-  kotlin: 'kt',
-  kt: 'kt',
-  bash: 'sh',
-  sh: 'sh',
-  yaml: 'yml',
-  yml: 'yml',
-  markdown: 'md',
-  md: 'md',
+  javascript: "js",
+  js: "js",
+  typescript: "ts",
+  ts: "ts",
+  python: "py",
+  py: "py",
+  dart: "dart",
+  json: "json",
+  sql: "sql",
+  text: "txt",
+  txt: "txt",
+  html: "html",
+  css: "css",
+  c: "c",
+  cpp: "cpp",
+  csharp: "cs",
+  cs: "cs",
+  go: "go",
+  rust: "rs",
+  rs: "rs",
+  ruby: "rb",
+  rb: "rb",
+  php: "php",
+  swift: "swift",
+  kotlin: "kt",
+  kt: "kt",
+  bash: "sh",
+  sh: "sh",
+  yaml: "yml",
+  yml: "yml",
+  markdown: "md",
+  md: "md",
 };
+
+const CODE_FILE_EXTENSIONS = new Set<string>([
+  ...Object.values(LANGUAGE_EXTENSIONS),
+  "yaml",
+]);
 
 // ==========================================
 // Storage Utilities
@@ -113,13 +120,13 @@ const LANGUAGE_EXTENSIONS: Record<string, string> = {
  */
 export function getDirectoryPath(directory: DirectoryType): string {
   switch (directory) {
-    case 'exports':
+    case "exports":
       return EXPORTS_DIR;
-    case 'images':
+    case "images":
       return IMAGES_DIR;
-    case 'downloads':
+    case "downloads":
       return DOWNLOADS_DIR;
-    case 'temp':
+    case "temp":
       return TEMP_DIR;
     default:
       throw new Error(`Unknown directory type: ${directory}`);
@@ -130,21 +137,21 @@ export function getDirectoryPath(directory: DirectoryType): string {
  * Formats bytes to human-readable size string
  */
 export function formatBytes(bytes: number, decimals: number = 2): string {
-  if (bytes === 0) return '0 Bytes';
+  if (bytes === 0) return "0 Bytes";
   const k = 1024;
   const dm = decimals < 0 ? 0 : decimals;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
 }
 
 /**
  * Extracts lowercase file extension from path/filename
  */
 export function getExtension(fileName: string): string {
-  const parts = fileName.split('.');
-  if (parts.length <= 1) return '';
-  return parts.pop()?.toLowerCase() || '';
+  const parts = fileName.split(".");
+  if (parts.length <= 1) return "";
+  return parts.pop()?.toLowerCase() || "";
 }
 
 /**
@@ -153,8 +160,10 @@ export function getExtension(fileName: string): string {
 export function generateFileName(extension: string, prefix?: string): string {
   const timestamp = Date.now();
   const random = Math.floor(Math.random() * 10000);
-  const cleanExt = extension.startsWith('.') ? extension.slice(1) : extension;
-  return prefix ? `${prefix}_${timestamp}_${random}.${cleanExt}` : `${timestamp}_${random}.${cleanExt}`;
+  const cleanExt = extension.startsWith(".") ? extension.slice(1) : extension;
+  return prefix
+    ? `${prefix}_${timestamp}_${random}.${cleanExt}`
+    : `${timestamp}_${random}.${cleanExt}`;
 }
 
 /**
@@ -162,8 +171,8 @@ export function generateFileName(extension: string, prefix?: string): string {
  */
 export function sanitizeFileName(fileName: string): string {
   const ext = getExtension(fileName);
-  const base = fileName.substring(0, fileName.lastIndexOf('.')) || fileName;
-  const sanitizedBase = base.replace(/[^a-zA-Z0-9_\-]/g, '_');
+  const base = fileName.substring(0, fileName.lastIndexOf(".")) || fileName;
+  const sanitizedBase = base.replace(/[^a-zA-Z0-9_\-]/g, "_");
   return ext ? `${sanitizedBase}.${ext}` : sanitizedBase;
 }
 
@@ -172,7 +181,7 @@ export function sanitizeFileName(fileName: string): string {
  */
 export function isImageFile(fileName: string): boolean {
   const ext = getExtension(fileName);
-  return ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'heic'].includes(ext);
+  return ["png", "jpg", "jpeg", "gif", "bmp", "webp", "heic"].includes(ext);
 }
 
 /**
@@ -180,7 +189,7 @@ export function isImageFile(fileName: string): boolean {
  */
 export function isCodeFile(fileName: string): boolean {
   const ext = getExtension(fileName);
-  return ['js', 'ts', 'py', 'dart', 'json', 'sql', 'txt', 'html', 'css', 'c', 'cpp', 'cs', 'go', 'rs', 'sh', 'swift', 'kt', 'yml', 'yaml', 'md'].includes(ext);
+  return CODE_FILE_EXTENSIONS.has(ext);
 }
 
 // ==========================================
@@ -191,7 +200,13 @@ export function isCodeFile(fileName: string): boolean {
  * Initializes the root Documents/ folder structure and all nested directories
  */
 export async function initializeFileSystem(): Promise<void> {
-  const dirs = [DOCUMENTS_DIR, EXPORTS_DIR, IMAGES_DIR, DOWNLOADS_DIR, TEMP_DIR];
+  const dirs = [
+    DOCUMENTS_DIR,
+    EXPORTS_DIR,
+    IMAGES_DIR,
+    DOWNLOADS_DIR,
+    TEMP_DIR,
+  ];
   try {
     for (const dir of dirs) {
       const info = await FileSystem.getInfoAsync(dir);
@@ -200,7 +215,7 @@ export async function initializeFileSystem(): Promise<void> {
       }
     }
   } catch (error) {
-    throw new FileOperationError('initializeFileSystem', DOCUMENTS_DIR, error);
+    throw new FileOperationError("initializeFileSystem", DOCUMENTS_DIR, error);
   }
 }
 
@@ -210,7 +225,7 @@ export async function initializeFileSystem(): Promise<void> {
 export async function createFile(
   fileName: string,
   content: string,
-  directory: DirectoryType
+  directory: DirectoryType,
 ): Promise<string> {
   const sanitized = sanitizeFileName(fileName);
   const dirPath = getDirectoryPath(directory);
@@ -228,7 +243,7 @@ export async function createFile(
     if (error instanceof DirectoryNotFoundError) {
       throw error;
     }
-    throw new FileOperationError('createFile', filePath, error);
+    throw new FileOperationError("createFile", filePath, error);
   }
 }
 
@@ -248,14 +263,17 @@ export async function readFile(path: string): Promise<string> {
     if (error instanceof FileNotFoundError) {
       throw error;
     }
-    throw new FileOperationError('readFile', path, error);
+    throw new FileOperationError("readFile", path, error);
   }
 }
 
 /**
  * Updates the text content of an existing file
  */
-export async function updateFile(path: string, content: string): Promise<string> {
+export async function updateFile(
+  path: string,
+  content: string,
+): Promise<string> {
   try {
     const info = await FileSystem.getInfoAsync(path);
     if (!info.exists) {
@@ -269,7 +287,7 @@ export async function updateFile(path: string, content: string): Promise<string>
     if (error instanceof FileNotFoundError) {
       throw error;
     }
-    throw new FileOperationError('updateFile', path, error);
+    throw new FileOperationError("updateFile", path, error);
   }
 }
 
@@ -287,7 +305,7 @@ export async function deleteFile(path: string): Promise<void> {
     if (error instanceof FileNotFoundError) {
       throw error;
     }
-    throw new FileOperationError('deleteFile', path, error);
+    throw new FileOperationError("deleteFile", path, error);
   }
 }
 
@@ -303,7 +321,7 @@ export async function listFiles(directory: DirectoryType): Promise<FileItem[]> {
     }
     const fileNames = await FileSystem.readDirectoryAsync(dirPath);
     const fileItems: FileItem[] = [];
-    
+
     for (const name of fileNames) {
       const filePath = `${dirPath}${name}`;
       const info = await FileSystem.getInfoAsync(filePath);
@@ -317,14 +335,14 @@ export async function listFiles(directory: DirectoryType): Promise<FileItem[]> {
         });
       }
     }
-    
+
     // Sort files by modification date descending (newest first)
     return fileItems.sort((a, b) => b.modifiedAt - a.modifiedAt);
   } catch (error) {
     if (error instanceof DirectoryNotFoundError) {
       throw error;
     }
-    throw new FileOperationError('listFiles', dirPath, error);
+    throw new FileOperationError("listFiles", dirPath, error);
   }
 }
 
@@ -337,7 +355,7 @@ export async function getFileInfo(path: string): Promise<FileItem> {
     if (!info.exists) {
       throw new FileNotFoundError(path);
     }
-    const name = path.split('/').pop() || '';
+    const name = path.split("/").pop() || "";
     return {
       name,
       path,
@@ -349,7 +367,7 @@ export async function getFileInfo(path: string): Promise<FileItem> {
     if (error instanceof FileNotFoundError) {
       throw error;
     }
-    throw new FileOperationError('getFileInfo', path, error);
+    throw new FileOperationError("getFileInfo", path, error);
   }
 }
 
@@ -358,11 +376,17 @@ export async function getFileInfo(path: string): Promise<FileItem> {
  */
 export async function downloadFile(
   url: string,
-  destination: DirectoryType | string
+  destination: DirectoryType | string,
 ): Promise<DownloadResult> {
-  let targetPath = '';
-  if (destination === 'exports' || destination === 'images' || destination === 'downloads' || destination === 'temp') {
-    const rawFilename = url.split('/').pop()?.split('?')[0] || `download_${Date.now()}`;
+  let targetPath = "";
+  if (
+    destination === "exports" ||
+    destination === "images" ||
+    destination === "downloads" ||
+    destination === "temp"
+  ) {
+    const rawFilename =
+      url.split("/").pop()?.split("?")[0] || `download_${Date.now()}`;
     const filename = sanitizeFileName(rawFilename);
     targetPath = `${getDirectoryPath(destination)}${filename}`;
   } else {
@@ -378,14 +402,17 @@ export async function downloadFile(
       mimeType: result.mimeType || null,
     };
   } catch (error) {
-    throw new FileOperationError('downloadFile', targetPath, error);
+    throw new FileOperationError("downloadFile", targetPath, error);
   }
 }
 
 /**
  * Copies a file from source absolute path URI to destination absolute path URI
  */
-export async function copyFile(source: string, destination: string): Promise<string> {
+export async function copyFile(
+  source: string,
+  destination: string,
+): Promise<string> {
   try {
     const sourceInfo = await FileSystem.getInfoAsync(source);
     if (!sourceInfo.exists) {
@@ -397,14 +424,17 @@ export async function copyFile(source: string, destination: string): Promise<str
     if (error instanceof FileNotFoundError) {
       throw error;
     }
-    throw new FileOperationError('copyFile', destination, error);
+    throw new FileOperationError("copyFile", destination, error);
   }
 }
 
 /**
  * Moves a file from source absolute path URI to destination absolute path URI
  */
-export async function moveFile(source: string, destination: string): Promise<string> {
+export async function moveFile(
+  source: string,
+  destination: string,
+): Promise<string> {
   try {
     const sourceInfo = await FileSystem.getInfoAsync(source);
     if (!sourceInfo.exists) {
@@ -416,7 +446,7 @@ export async function moveFile(source: string, destination: string): Promise<str
     if (error instanceof FileNotFoundError) {
       throw error;
     }
-    throw new FileOperationError('moveFile', destination, error);
+    throw new FileOperationError("moveFile", destination, error);
   }
 }
 
@@ -435,7 +465,7 @@ export async function clearTempFiles(): Promise<void> {
       await FileSystem.deleteAsync(filePath, { idempotent: true });
     }
   } catch (error) {
-    throw new FileOperationError('clearTempFiles', TEMP_DIR, error);
+    throw new FileOperationError("clearTempFiles", TEMP_DIR, error);
   }
 }
 
@@ -459,7 +489,9 @@ async function getDirectorySizeRecursively(dirPath: string): Promise<number> {
     const items = await FileSystem.readDirectoryAsync(dirPath);
     let total = 0;
     for (const item of items) {
-      const itemPath = dirPath.endsWith('/') ? `${dirPath}${item}` : `${dirPath}/${item}`;
+      const itemPath = dirPath.endsWith("/")
+        ? `${dirPath}${item}`
+        : `${dirPath}/${item}`;
       const itemInfo = await FileSystem.getInfoAsync(itemPath);
       if (itemInfo.exists) {
         if (itemInfo.isDirectory) {
@@ -495,7 +527,7 @@ export async function getStorageUsage(): Promise<StorageStats> {
       tempSize,
     };
   } catch (error) {
-    throw new FileOperationError('getStorageUsage', DOCUMENTS_DIR, error);
+    throw new FileOperationError("getStorageUsage", DOCUMENTS_DIR, error);
   }
 }
 
@@ -509,13 +541,17 @@ export async function getStorageUsage(): Promise<StorageStats> {
 export async function exportSnippetAsFile(
   title: string,
   code: string,
-  language: string
+  language: string,
 ): Promise<string> {
   const languageKey = language.toLowerCase();
-  const ext = LANGUAGE_EXTENSIONS[languageKey] || 'txt';
+  const ext = LANGUAGE_EXTENSIONS[languageKey] || "txt";
   const baseName = sanitizeFileName(title);
-  const fileName = baseName ? (baseName.endsWith(`.${ext}`) ? baseName : `${baseName}.${ext}`) : `snippet_${Date.now()}.${ext}`;
-  return await createFile(fileName, code, 'exports');
+  const fileName = baseName
+    ? baseName.endsWith(`.${ext}`)
+      ? baseName
+      : `${baseName}.${ext}`
+    : `snippet_${Date.now()}.${ext}`;
+  return await createFile(fileName, code, "exports");
 }
 
 // ==========================================
@@ -525,22 +561,25 @@ export async function exportSnippetAsFile(
 /**
  * Moves local image picking assets to local storage image vault Documents/images/
  */
-export async function saveSnippetImage(imageUri: string, customTitle?: string): Promise<string> {
+export async function saveSnippetImage(
+  imageUri: string,
+  customTitle?: string,
+): Promise<string> {
   try {
     const sourceInfo = await FileSystem.getInfoAsync(imageUri);
     if (!sourceInfo.exists) {
       throw new FileNotFoundError(imageUri);
     }
-    const ext = getExtension(imageUri) || 'png';
-    
-    let filename = '';
+    const ext = getExtension(imageUri) || "png";
+
+    let filename = "";
     if (customTitle) {
-      const cleanTitle = customTitle.replace(/[^a-zA-Z0-9_\-]/g, '_');
+      const cleanTitle = customTitle.replace(/[^a-zA-Z0-9_\-]/g, "_");
       filename = `${cleanTitle}.${ext}`;
     } else {
-      filename = generateFileName(ext, 'screenshot');
+      filename = generateFileName(ext, "screenshot");
     }
-    
+
     const destPath = `${IMAGES_DIR}${filename}`;
 
     try {
@@ -551,7 +590,10 @@ export async function saveSnippetImage(imageUri: string, customTitle?: string): 
       try {
         await FileSystem.deleteAsync(imageUri, { idempotent: true });
       } catch (deleteError) {
-        console.warn(`Failed to clean up source imageUri after copy fallback: ${imageUri}`, deleteError);
+        console.warn(
+          `Failed to clean up source imageUri after copy fallback: ${imageUri}`,
+          deleteError,
+        );
       }
     }
 
@@ -560,43 +602,46 @@ export async function saveSnippetImage(imageUri: string, customTitle?: string): 
     if (error instanceof FileNotFoundError) {
       throw error;
     }
-    throw new FileOperationError('saveSnippetImage', imageUri, error);
+    throw new FileOperationError("saveSnippetImage", imageUri, error);
   }
 }
 
 /**
  * Renames or moves a local file keeping its original extension and directory
  */
-export async function renameFile(oldPath: string, newBaseName: string): Promise<string> {
+export async function renameFile(
+  oldPath: string,
+  newBaseName: string,
+): Promise<string> {
   try {
     const info = await FileSystem.getInfoAsync(oldPath);
     if (!info.exists) {
       throw new FileNotFoundError(oldPath);
     }
-    const dirPath = oldPath.substring(0, oldPath.lastIndexOf('/') + 1);
+    const dirPath = oldPath.substring(0, oldPath.lastIndexOf("/") + 1);
     const ext = getExtension(oldPath);
-    const cleanBase = newBaseName.replace(/[^a-zA-Z0-9_\-]/g, '_');
-    const newPath = `${dirPath}${cleanBase}${ext ? `.${ext}` : ''}`;
-    
+    const cleanBase = newBaseName.replace(/[^a-zA-Z0-9_\-]/g, "_");
+    const newPath = `${dirPath}${cleanBase}${ext ? `.${ext}` : ""}`;
+
     if (oldPath === newPath) return oldPath;
-    
+
     // Check if destination already exists to avoid overwrite or handle it
     const destInfo = await FileSystem.getInfoAsync(newPath);
     if (destInfo.exists) {
       // If it exists, append a small random string to make it unique but still descriptive
       const random = Math.floor(Math.random() * 1000);
-      const uniquePath = `${dirPath}${cleanBase}_${random}${ext ? `.${ext}` : ''}`;
+      const uniquePath = `${dirPath}${cleanBase}_${random}${ext ? `.${ext}` : ""}`;
       await FileSystem.moveAsync({ from: oldPath, to: uniquePath });
       return uniquePath;
     }
-    
+
     await FileSystem.moveAsync({ from: oldPath, to: newPath });
     return newPath;
   } catch (error) {
     if (error instanceof FileNotFoundError) {
       throw error;
     }
-    throw new FileOperationError('renameFile', oldPath, error);
+    throw new FileOperationError("renameFile", oldPath, error);
   }
 }
 
@@ -608,7 +653,7 @@ export async function wipeFileSystem(): Promise<void> {
     await FileSystem.deleteAsync(DOCUMENTS_DIR, { idempotent: true });
     await initializeFileSystem();
   } catch (error) {
-    throw new FileOperationError('wipeFileSystem', DOCUMENTS_DIR, error);
+    throw new FileOperationError("wipeFileSystem", DOCUMENTS_DIR, error);
   }
 }
 
@@ -620,7 +665,6 @@ export async function wipeDatabaseFile(): Promise<void> {
     const dbDir = `${FileSystem.documentDirectory}SQLite/`;
     await FileSystem.deleteAsync(dbDir, { idempotent: true });
   } catch (error) {
-    throw new FileOperationError('wipeDatabaseFile', 'SQLite', error);
+    throw new FileOperationError("wipeDatabaseFile", "SQLite", error);
   }
 }
-

@@ -1,7 +1,8 @@
-import { BORDER_RADIUS, SHADOW, Theme } from "@/constants/theme";
+import { BORDER_RADIUS, Theme } from "@/constants/theme";
+import { getTabBarStyle } from "@/constants/tabBarStyle";
 import { useTheme } from "@/hooks/useTheme";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { Tabs, router } from "expo-router";
+import { Tabs, router, useSegments } from "expo-router";
 import React from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
@@ -49,10 +50,22 @@ const FloatingAddButton = () => {
   );
 };
 
+const HOME_STACK_OVERLAY_SCREENS = new Set([
+  "AllSnippetsScreen",
+  "FavouritesScreen",
+  "SearchScreen",
+]);
+
 export default function RootLayout() {
   const theme = useTheme();
   const { bottom } = useSafeAreaInsets();
   const styles = makeStyles(theme, bottom);
+  const segments = useSegments();
+  const isHomeOverlayScreen =
+    segments[0] === "(tabs)" &&
+    segments[1] === "home" &&
+    typeof segments[2] === "string" &&
+    HOME_STACK_OVERLAY_SCREENS.has(segments[2]);
 
   return (
     <View style={styles.container}>
@@ -61,13 +74,8 @@ export default function RootLayout() {
           headerShown: false,
           tabBarActiveTintColor: theme.activeTab,
           tabBarInactiveTintColor: theme.inactiveTab,
-          tabBarStyle: {
-            backgroundColor: theme.background,
-            borderTopWidth: 1,
-            borderTopColor: theme.cardBorder,
-            elevation: 2,
-            paddingTop: 3,
-          },
+          tabBarStyle: getTabBarStyle(theme),
+          sceneStyle: { backgroundColor: theme.background },
         }}
       >
         <Tabs.Screen
@@ -87,7 +95,7 @@ export default function RootLayout() {
           }}
         />
       </Tabs>
-      <FloatingAddButton />
+      {!isHomeOverlayScreen && <FloatingAddButton />}
     </View>
   );
 }
