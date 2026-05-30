@@ -8,11 +8,12 @@ import {
   Theme,
 } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { getAllSnippets } from "@/services/db/snippets";
 import { Snippet } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFocusEffect, router } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { memo, useCallback, useMemo, useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -34,7 +35,7 @@ const LANGUAGE_ICONS: Record<string, string> = {
 
 const FeaturedSnippetCard = () => {
   const theme = useTheme();
-  const styles = makeStyles(theme);
+  const styles = useThemedStyles(makeStyles, theme);
   const [latestSnippet, setLatestSnippet] = useState<Snippet | null>(null);
   const iconName = latestSnippet ? (LANGUAGE_ICONS[latestSnippet.language] || "code-tags") : "code-tags";
 
@@ -77,19 +78,21 @@ const FeaturedSnippetCard = () => {
     }
   };
 
+  const createdDate = useMemo(() => {
+    if (!latestSnippet) {
+      return "";
+    }
+    return new Date(latestSnippet.created_at * 1000).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }, [latestSnippet?.created_at]);
+
   // If there are no snippets saved yet, we return null to hide the component
   if (!latestSnippet) {
     return null;
   }
-
-  const createdDate = new Date(latestSnippet.created_at * 1000).toLocaleDateString(
-    undefined,
-    {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    }
-  );
 
   return (
     <AnimatedPressable
@@ -144,7 +147,7 @@ const FeaturedSnippetCard = () => {
         {latestSnippet.favorite === 1 && (
           <View style={styles.badge}>
             <MaterialCommunityIcons name="star" size={ICON_SIZE.sm} color={theme.favorite} />
-            <Text style={[styles.badgeText, { color: theme.favorite }]}>
+            <Text style={styles.favoriteBadgeText}>
               Favorite
             </Text>
           </View>
@@ -154,7 +157,7 @@ const FeaturedSnippetCard = () => {
   );
 };
 
-export default FeaturedSnippetCard;
+export default memo(FeaturedSnippetCard);
 
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
@@ -237,5 +240,10 @@ const makeStyles = (theme: Theme) =>
       fontSize: FONT_SIZE.sm,
       fontFamily: FONT_FAMILY.medium,
       color: theme.text,
+    },
+    favoriteBadgeText: {
+      fontSize: FONT_SIZE.sm,
+      fontFamily: FONT_FAMILY.medium,
+      color: theme.favorite,
     },
   });

@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from "react";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import React, { memo, useState, useEffect, useCallback } from "react";
 import {
   Modal,
   Pressable,
@@ -65,7 +66,7 @@ const FileManagementModal = ({
   onRefreshStats,
 }: FileManagementModalProps) => {
   const theme = useTheme();
-  const styles = makeStyles(theme);
+  const styles = useThemedStyles(makeStyles, theme);
 
   // States
   const [files, setFiles] = useState<FileItem[]>([]);
@@ -302,7 +303,10 @@ const FileManagementModal = ({
                 <Text style={styles.title} numberOfLines={1}>
                   {getModalTitle()}
                 </Text>
-                <Pressable onPress={onClose} style={styles.closeButton}>
+                <Pressable 
+                  onPress={onClose} 
+                  style={styles.closeButton}
+                  hitSlop={{ top: 50, bottom: 50, left: 50, right: 30 }}>
                   <MaterialCommunityIcons
                     name="close"
                     size={ICON_SIZE.lg}
@@ -421,6 +425,7 @@ const FileManagementModal = ({
                 <Pressable
                   onPress={() => setViewingFile(null)}
                   style={styles.backButton}
+                  hitSlop={{ top: 30, bottom: 30, left: 20, right: 100 }}
                 >
                   <MaterialCommunityIcons
                     name="arrow-left"
@@ -635,7 +640,7 @@ const FileRowItem = ({
   );
 };
 
-export default FileManagementModal;
+export default memo(FileManagementModal);
 
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({

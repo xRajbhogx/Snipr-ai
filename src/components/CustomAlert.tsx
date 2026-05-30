@@ -8,7 +8,8 @@ import {
   Theme,
 } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
-import React from "react";
+import React, { memo } from "react";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   FadeIn,
@@ -37,7 +38,7 @@ const CustomAlert = ({
   onClose,
 }: CustomAlertProps) => {
   const theme = useTheme();
-  const styles = makeStyles(theme);
+  const styles = useThemedStyles(makeStyles, theme);
 
   if (!visible) return null;
 
@@ -115,7 +116,7 @@ const CustomAlert = ({
   );
 };
 
-export default CustomAlert;
+export default memo(CustomAlert);
 
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({

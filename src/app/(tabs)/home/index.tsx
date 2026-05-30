@@ -12,6 +12,7 @@ import {
 } from "@/constants/theme";
 import { useGlobalStyles } from "@/constants/useGlobalStyles";
 import { useTheme } from "@/hooks/useTheme";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { getAllSnippets, seedDemoSnippets } from "@/services/db/snippets";
 import { Snippet } from "@/types";
 import { router, useFocusEffect } from "expo-router";
@@ -21,7 +22,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 const HomeScreen = () => {
   const theme = useTheme();
   const globalStyles = useGlobalStyles(theme);
-  const styles = makeStyles(theme);
+  const styles = useThemedStyles(makeStyles, theme);
   const [recentSnippets, setRecentSnippets] = useState<Snippet[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [alertVisible, setAlertVisible] = useState(false);
@@ -41,7 +42,7 @@ const HomeScreen = () => {
     }, [loadSnippets])
   );
 
-  const handleImportStarterSnippets = () => {
+  const handleImportStarterSnippets = useCallback(() => {
     try {
       seedDemoSnippets();
       loadSnippets();
@@ -50,10 +51,14 @@ const HomeScreen = () => {
     } catch (error) {
       console.error("Failed to seed demo snippets:", error);
     }
-  };
+  }, [loadSnippets]);
+
+  const handleCloseAlert = useCallback(() => {
+    setAlertVisible(false);
+  }, []);
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.background }}>
+    <View style={styles.screenRoot}>
       <ScrollView 
         contentContainerStyle={globalStyles.tabScreenContentContainer} 
         showsVerticalScrollIndicator={false}
@@ -75,7 +80,11 @@ const HomeScreen = () => {
           <View style={styles.recentSection}>
             <View style={styles.recentHeader}>
               <Text style={styles.recentTitle}>Recent Snippets</Text>
-              <Pressable onPress={() => router.push("/home/AllSnippetsScreen")}>
+              <Pressable 
+              onPress={() => router.push("/home/AllSnippetsScreen")}
+              hitSlop={{
+                top: 50, bottom: 50, left: 50, right: 50
+              }}>
                 <Text style={styles.viewAllText}>View All</Text>
               </Pressable>
             </View>
@@ -94,7 +103,7 @@ const HomeScreen = () => {
         visible={alertVisible}
         title="Starter Snippets Imported"
         message="Four developer-oriented starter snippets have been successfully added to your local vault."
-        onClose={() => setAlertVisible(false)}
+        onClose={handleCloseAlert}
       />
     </View>
   );
@@ -104,6 +113,10 @@ export default HomeScreen;
 
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
+    screenRoot: {
+      flex: 1,
+      backgroundColor: theme.background,
+    },
     headerRow: {
       marginTop: SPACING.md,
     },

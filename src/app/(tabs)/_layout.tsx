@@ -3,7 +3,7 @@ import { getTabBarStyle } from "@/constants/tabBarStyle";
 import { useTheme } from "@/hooks/useTheme";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Tabs, router, useSegments } from "expo-router";
-import React from "react";
+import React, { memo, useMemo } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -14,10 +14,32 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-const FloatingAddButton = () => {
+const HOME_STACK_OVERLAY_SCREENS = new Set([
+  "AllSnippetsScreen",
+  "FavouritesScreen",
+  "SearchScreen",
+]);
+
+const TabHomeIcon = ({ color, size }: { color: string; size: number }) => (
+  <Ionicons name="home" size={size} color={color} />
+);
+
+const TabProfileIcon = ({ color, size }: { color: string; size: number }) => (
+  <Ionicons name="person" size={size} color={color} />
+);
+
+const homeTabOptions = {
+  tabBarIcon: TabHomeIcon,
+};
+
+const profileTabOptions = {
+  tabBarIcon: TabProfileIcon,
+};
+
+const FloatingAddButton = memo(() => {
   const theme = useTheme();
   const { bottom } = useSafeAreaInsets();
-  const styles = makeStyles(theme, bottom);
+  const styles = useMemo(() => makeStyles(theme, bottom), [theme, bottom]);
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -48,52 +70,41 @@ const FloatingAddButton = () => {
       </AnimatedPressable>
     </View>
   );
-};
+});
 
-const HOME_STACK_OVERLAY_SCREENS = new Set([
-  "AllSnippetsScreen",
-  "FavouritesScreen",
-  "SearchScreen",
-]);
+FloatingAddButton.displayName = "FloatingAddButton";
 
 export default function RootLayout() {
   const theme = useTheme();
   const { bottom } = useSafeAreaInsets();
-  const styles = makeStyles(theme, bottom);
+  const styles = useMemo(() => makeStyles(theme, bottom), [theme, bottom]);
   const segments = useSegments();
-  const isHomeOverlayScreen =
-    segments[0] === "(tabs)" &&
-    segments[1] === "home" &&
-    typeof segments[2] === "string" &&
-    HOME_STACK_OVERLAY_SCREENS.has(segments[2]);
+
+  const isHomeOverlayScreen = useMemo(
+    () =>
+      segments[0] === "(tabs)" &&
+      segments[1] === "home" &&
+      typeof segments[2] === "string" &&
+      HOME_STACK_OVERLAY_SCREENS.has(segments[2]),
+    [segments],
+  );
+
+  const screenOptions = useMemo(
+    () => ({
+      headerShown: false,
+      tabBarActiveTintColor: theme.activeTab,
+      tabBarInactiveTintColor: theme.inactiveTab,
+      tabBarStyle: getTabBarStyle(theme),
+      sceneStyle: { backgroundColor: theme.background },
+    }),
+    [theme],
+  );
 
   return (
     <View style={styles.container}>
-      <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarActiveTintColor: theme.activeTab,
-          tabBarInactiveTintColor: theme.inactiveTab,
-          tabBarStyle: getTabBarStyle(theme),
-          sceneStyle: { backgroundColor: theme.background },
-        }}
-      >
-        <Tabs.Screen
-          name="home"
-          options={{
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="home" size={size} color={color} />
-            ),
-          }}
-        />
-        <Tabs.Screen
-          name="profile"
-          options={{
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="person" size={size} color={color} />
-            ),
-          }}
-        />
+      <Tabs screenOptions={screenOptions}>
+        <Tabs.Screen name="home" options={homeTabOptions} />
+        <Tabs.Screen name="profile" options={profileTabOptions} />
       </Tabs>
       {!isHomeOverlayScreen && <FloatingAddButton />}
     </View>

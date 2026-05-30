@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useColorScheme } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { COLORS, Theme } from "@/constants/theme";
@@ -50,24 +57,27 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   }, [themePreference, deviceScheme]);
 
-  const setThemePreference = async (pref: ThemePreference) => {
+  const setThemePreference = useCallback(async (pref: ThemePreference) => {
     try {
       await AsyncStorage.setItem(THEME_PREF_KEY, pref);
       setThemePreferenceState(pref);
     } catch (error) {
       console.error("Failed to save theme preference:", error);
     }
-  };
+  }, []);
+
+  const contextValue = useMemo(
+    () => ({
+      theme: activeTheme,
+      themePreference,
+      setThemePreference,
+      isThemeLoading,
+    }),
+    [activeTheme, themePreference, setThemePreference, isThemeLoading],
+  );
 
   return (
-    <ThemeContext.Provider
-      value={{
-        theme: activeTheme,
-        themePreference,
-        setThemePreference,
-        isThemeLoading,
-      }}
-    >
+    <ThemeContext.Provider value={contextValue}>
       {children}
     </ThemeContext.Provider>
   );

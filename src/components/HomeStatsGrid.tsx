@@ -11,7 +11,8 @@ import {
 import { useTheme } from "@/hooks/useTheme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
-import React, { useState, useCallback, useEffect } from "react";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import React, { memo, useState, useCallback, useEffect, useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
     useAnimatedStyle,
@@ -44,10 +45,10 @@ type StatCardProps = {
   item: StatItem;
   theme: Theme;
   styles: ReturnType<typeof makeStyles>;
-  onPress: () => void;
+  onPress: (key: string) => void;
 };
 
-const StatCard = ({ item, theme, styles, onPress }: StatCardProps) => {
+const StatCard = memo(({ item, theme, styles, onPress }: StatCardProps) => {
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -61,10 +62,14 @@ const StatCard = ({ item, theme, styles, onPress }: StatCardProps) => {
     scale.value = withTiming(1, { duration: 110 });
   };
 
+  const handlePress = useCallback(() => {
+    onPress(item.key);
+  }, [item.key, onPress]);
+
   return (
     <AnimatedPressable
       accessibilityRole="button"
-      onPress={onPress}
+      onPress={handlePress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       style={[styles.card, animatedStyle]}
@@ -78,11 +83,13 @@ const StatCard = ({ item, theme, styles, onPress }: StatCardProps) => {
       <Text style={styles.cardValue}>{item.value}</Text>
     </AnimatedPressable>
   );
-};
+});
+
+StatCard.displayName = "StatCard";
 
 const HomeStatsGrid = () => {
   const theme = useTheme();
-  const styles = makeStyles(theme);
+  const styles = useThemedStyles(makeStyles, theme);
   const [stats, setStats] = useState({
     snippets: 0,
     favorites: 0,
@@ -163,26 +170,36 @@ const HomeStatsGrid = () => {
     }, [loadStats])
   );
 
-  const getStatValue = (key: string): string => {
-    switch (key) {
-      case "snippets":
-        return stats.snippets.toLocaleString();
-      case "favorites":
-        return stats.favorites.toLocaleString();
-      case "files":
-        return stats.files.toLocaleString();
-      case "screenshots":
-        return stats.screenshots.toLocaleString();
-      case "downloads":
-        return stats.downloads.toLocaleString();
-      case "trash":
-        return stats.trash.toLocaleString();
-      default:
-        return "0";
-    }
-  };
+  const statItems = useMemo<StatItem[]>(
+    () =>
+      STATS_TEMPLATE.map((item) => {
+        let value = "0";
+        switch (item.key) {
+          case "snippets":
+            value = stats.snippets.toLocaleString();
+            break;
+          case "favorites":
+            value = stats.favorites.toLocaleString();
+            break;
+          case "files":
+            value = stats.files.toLocaleString();
+            break;
+          case "screenshots":
+            value = stats.screenshots.toLocaleString();
+            break;
+          case "downloads":
+            value = stats.downloads.toLocaleString();
+            break;
+          case "trash":
+            value = stats.trash.toLocaleString();
+            break;
+        }
+        return { ...item, value };
+      }),
+    [stats],
+  );
 
-  const handlePressCard = (key: string) => {
+  const handlePressCard = useCallback((key: string) => {
     switch (key) {
       case "snippets":
         router.push("/home/AllSnippetsScreen");
@@ -205,31 +222,35 @@ const HomeStatsGrid = () => {
       default:
         break;
     }
-  };
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    setModalVisible(false);
+  }, []);
 
   return (
     <View style={styles.grid}>
-      {STATS_TEMPLATE.map((item) => (
+      {statItems.map((item) => (
         <StatCard
           key={item.key}
-          item={{ ...item, value: getStatValue(item.key) }}
+          item={item}
           theme={theme}
           styles={styles}
-          onPress={() => handlePressCard(item.key)}
+          onPress={handlePressCard}
         />
       ))}
 
       <FileManagementModal
         visible={modalVisible}
         directory={selectedDir}
-        onClose={() => setModalVisible(false)}
+        onClose={handleCloseModal}
         onRefreshStats={loadStats}
       />
     </View>
   );
 };
 
-export default HomeStatsGrid;
+export default memo(HomeStatsGrid);
 
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({

@@ -17,9 +17,11 @@ import { getFavorites } from "@/services/db/snippets";
 import { Snippet } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
-import React, { useCallback, useState } from "react";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   FlatList,
+  ListRenderItemInfo,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -50,7 +52,7 @@ const FavouritesScreen = () => {
   const theme = useTheme();
   useHideTabBar();
   const globalStyles = useGlobalStyles(theme);
-  const styles = makeStyles(theme);
+  const styles = useThemedStyles(makeStyles, theme);
   const { preferences } = useUserPreferences();
 
   const [favourites, setFavourites] = useState<Snippet[]>(loadFavouritesFromDb);
@@ -103,9 +105,10 @@ const FavouritesScreen = () => {
     router.back();
   };
 
-  const renderEmpty = () => {
-    const hasAnyFavourites = favourites.length > 0;
-    return (
+  const hasAnyFavourites = favourites.length > 0;
+
+  const listEmptyComponent = useMemo(
+    () => (
       <View style={styles.emptyContainer}>
         <MaterialCommunityIcons
           name={hasAnyFavourites ? "text-search-variant" : "star-outline"}
@@ -121,8 +124,16 @@ const FavouritesScreen = () => {
             : "Tap the star icon on any snippet to save it here."}
         </Text>
       </View>
-    );
-  };
+    ),
+    [hasAnyFavourites, styles, theme.inactiveTab],
+  );
+
+  const renderFavouriteItem = useCallback(
+    ({ item }: ListRenderItemInfo<Snippet>) => <SnippetCard snippet={item} />,
+    [],
+  );
+
+  const keyExtractor = useCallback((item: Snippet) => String(item.id), []);
 
   return (
     <View style={globalStyles.screenContainer}>
@@ -183,11 +194,15 @@ const FavouritesScreen = () => {
 
       <FlatList
         data={sortedFavourites}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => <SnippetCard snippet={item} />}
+        keyExtractor={keyExtractor}
+        renderItem={renderFavouriteItem}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        ListEmptyComponent={renderEmpty}
+        ListEmptyComponent={listEmptyComponent}
+        removeClippedSubviews
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={7}
       />
     </View>
   );

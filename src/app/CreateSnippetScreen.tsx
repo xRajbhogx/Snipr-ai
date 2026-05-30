@@ -11,6 +11,7 @@ import {
 import { useGlobalStyles } from "@/constants/useGlobalStyles";
 import { useUserPreferences } from "@/hooks/useUserPreferences";
 import { useTheme } from "@/hooks/useTheme";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
 import {
   createSnippet,
   getSnippetById,
@@ -28,13 +29,15 @@ import {
 } from "@/services/fileService";
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  View
+  View,
 } from "react-native";
 import Animated, { SlideInDown, SlideOutDown } from "react-native-reanimated";
 
@@ -56,7 +59,7 @@ const LANGUAGES = [
 const CreateSnippetScreen = () => {
   const theme = useTheme();
   const globalStyles = useGlobalStyles(theme);
-  const styles = makeStyles(theme);
+  const styles = useThemedStyles(makeStyles, theme);
 
   const { editId } = useLocalSearchParams<{ editId?: string }>();
   const isEditing = !!editId;
@@ -333,8 +336,12 @@ const CreateSnippetScreen = () => {
       entering={SlideInDown.duration(300)}
       exiting={SlideOutDown.duration(300)}
     >
-      {/* Header matching SnippetDetailScreen */}
-      <View style={[globalStyles.headerRow, styles.header]}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.keyboardAvoiding}
+      >
+        {/* Header matching SnippetDetailScreen */}
+        <View style={[globalStyles.headerRow, styles.header]}>
         <Pressable onPress={() => router.back()} style={styles.iconButton}>
           <MaterialCommunityIcons
             name="arrow-left"
@@ -597,6 +604,7 @@ const CreateSnippetScreen = () => {
           </View>
         </View>
       </ScrollView>
+      </KeyboardAvoidingView>
       <CustomAlert
         visible={alertConfig.visible}
         title={alertConfig.title}
@@ -942,5 +950,8 @@ const makeStyles = (theme: Theme) =>
       fontFamily: FONT_FAMILY.semibold,
       fontSize: FONT_SIZE.sm,
       marginTop: SPACING.sm,
+    },
+    keyboardAvoiding: {
+      flex: 1,
     },
   });

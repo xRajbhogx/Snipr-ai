@@ -8,9 +8,10 @@ import {
   Theme,
 } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useEffect } from "react";
+import React, { memo, useEffect } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -27,7 +28,7 @@ interface HomeEmptyStateProps {
 
 const HomeEmptyState = ({ onImportStarterSnippets }: HomeEmptyStateProps) => {
   const theme = useTheme();
-  const styles = makeStyles(theme);
+  const styles = useThemedStyles(makeStyles, theme);
 
   // Shared values for halo pulsations
   const haloScale1 = useSharedValue(1);
@@ -249,7 +250,7 @@ const HomeEmptyState = ({ onImportStarterSnippets }: HomeEmptyStateProps) => {
   );
 };
 
-export default HomeEmptyState;
+export default memo(HomeEmptyState);
 
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({

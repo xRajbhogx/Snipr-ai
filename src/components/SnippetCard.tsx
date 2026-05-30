@@ -8,10 +8,11 @@ import {
   Theme,
 } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { Snippet } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React from "react";
+import React, { memo, useMemo } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -35,9 +36,9 @@ type SnippetCardProps = {
   snippet: Snippet;
 };
 
-const SnippetCard = ({ snippet }: SnippetCardProps) => {
+const SnippetCardComponent = ({ snippet }: SnippetCardProps) => {
   const theme = useTheme();
-  const styles = makeStyles(theme);
+  const styles = useThemedStyles(makeStyles, theme);
   const iconName = LANGUAGE_ICONS[snippet.language] || "code-tags";
 
   const scale = useSharedValue(1);
@@ -58,13 +59,14 @@ const SnippetCard = ({ snippet }: SnippetCardProps) => {
     router.push(`/SnippetDetailScreen?id=${snippet.id}`);
   };
 
-  const createdDate = new Date(snippet.created_at * 1000).toLocaleDateString(
-    undefined,
-    {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    },
+  const createdDate = useMemo(
+    () =>
+      new Date(snippet.created_at * 1000).toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      }),
+    [snippet.created_at],
   );
 
   return (
@@ -128,6 +130,25 @@ const SnippetCard = ({ snippet }: SnippetCardProps) => {
     </AnimatedPressable>
   );
 };
+
+const areSnippetCardPropsEqual = (
+  prev: SnippetCardProps,
+  next: SnippetCardProps,
+) => {
+  const a = prev.snippet;
+  const b = next.snippet;
+  return (
+    a.id === b.id &&
+    a.title === b.title &&
+    a.description === b.description &&
+    a.code === b.code &&
+    a.language === b.language &&
+    a.favorite === b.favorite &&
+    a.created_at === b.created_at
+  );
+};
+
+const SnippetCard = memo(SnippetCardComponent, areSnippetCardPropsEqual);
 
 export default SnippetCard;
 

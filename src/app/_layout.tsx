@@ -6,7 +6,7 @@ import { ThemeProvider as NavigationThemeProvider } from "@react-navigation/nati
 import { Stack } from "expo-router/stack";
 import * as SplashScreen from "expo-splash-screen";
 import * as SystemUI from "expo-system-ui";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { initializeFileSystem } from "@/services/fileService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system/legacy";
@@ -94,27 +94,37 @@ function RootLayoutContent() {
     SystemUI.setBackgroundColorAsync(theme.background).catch(() => {});
   }, [theme.background]);
 
+  const navigationTheme = useMemo(() => getNavigationTheme(theme), [theme]);
+
+  const stackScreenOptions = useMemo(
+    () => ({
+      headerShown: false,
+      contentStyle: { backgroundColor: theme.background },
+      animation: "simple_push" as const,
+    }),
+    [theme.background],
+  );
+
+  const createSnippetScreenOptions = useMemo(
+    () => ({
+      presentation: "modal" as const,
+      headerShown: false,
+      contentStyle: { backgroundColor: theme.background },
+    }),
+    [theme.background],
+  );
+
   if (isThemeLoading || !dbReady || !fsReady) {
     return null;
   }
 
   return (
-    <NavigationThemeProvider value={getNavigationTheme(theme)}>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: theme.background },
-          animation: "simple_push",
-        }}
-      >
+    <NavigationThemeProvider value={navigationTheme}>
+      <Stack screenOptions={stackScreenOptions}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen
           name="CreateSnippetScreen"
-          options={{
-            presentation: "modal",
-            headerShown: false,
-            contentStyle: { backgroundColor: theme.background },
-          }}
+          options={createSnippetScreenOptions}
         />
       </Stack>
     </NavigationThemeProvider>

@@ -18,9 +18,11 @@ import { getAllSnippets, deleteAllSnippets, seedDemoSnippets } from "@/services/
 import { Snippet } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
-import React, { useCallback, useState } from "react";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   FlatList,
+  ListRenderItemInfo,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -52,7 +54,7 @@ const AllSnippetsScreen = () => {
   const theme = useTheme();
   useHideTabBar();
   const globalStyles = useGlobalStyles(theme);
-  const styles = makeStyles(theme);
+  const styles = useThemedStyles(makeStyles, theme);
   const { preferences } = useUserPreferences();
   const [snippets, setSnippets] = useState<Snippet[]>(loadSnippetsFromDb);
   const [searchQuery, setSearchQuery] = useState("");
@@ -63,7 +65,7 @@ const AllSnippetsScreen = () => {
   const { focusSearch } = useLocalSearchParams<{ focusSearch?: string }>();
   const searchInputRef = React.useRef<TextInput | null>(null);
 
-  const handleSeed = () => {
+  const handleSeed = useCallback(() => {
     try {
       seedDemoSnippets();
       const data = getAllSnippets();
@@ -72,16 +74,16 @@ const AllSnippetsScreen = () => {
     } catch (error) {
       console.error("Failed to seed starter snippets in AllSnippetsScreen:", error);
     }
-  };
+  }, []);
 
-  const handleDeleteAll = () => {
+  const handleDeleteAll = useCallback(() => {
     try {
       deleteAllSnippets();
       setSnippets([]);
     } catch (error) {
       console.error("Failed to delete all snippets", error);
     }
-  };
+  }, []);
 
   const availableLanguages = React.useMemo(() => {
     const langs = snippets
@@ -135,9 +137,10 @@ const AllSnippetsScreen = () => {
     router.back();
   };
 
-  const renderEmpty = () => {
-    const hasAnySnippets = snippets.length > 0;
-    return (
+  const hasAnySnippets = snippets.length > 0;
+
+  const listEmptyComponent = useMemo(
+    () => (
       <View style={styles.emptyContainer}>
         <MaterialCommunityIcons
           name={hasAnySnippets ? "text-search-variant" : "code-tags"}
@@ -152,7 +155,6 @@ const AllSnippetsScreen = () => {
             ? "Try adjusting your search or language filter."
             : "You haven't created any snippets yet."}
         </Text>
-        {/* CTA Buttons */}
         <View style={styles.actionContainer}>
           <Pressable
             onPress={() => router.push("/CreateSnippetScreen")}
@@ -169,7 +171,7 @@ const AllSnippetsScreen = () => {
             />
             <Text style={styles.primaryButtonText}>Create First Snippet</Text>
           </Pressable>
-        
+
           <Pressable
             onPress={handleSeed}
             style={({ pressed }) => [
@@ -187,8 +189,16 @@ const AllSnippetsScreen = () => {
           </Pressable>
         </View>
       </View>
-    );
-  };
+    ),
+    [hasAnySnippets, handleSeed, styles, theme.inactiveTab, theme.text, theme.white],
+  );
+
+  const renderSnippetItem = useCallback(
+    ({ item }: ListRenderItemInfo<Snippet>) => <SnippetCard snippet={item} />,
+    [],
+  );
+
+  const keyExtractor = useCallback((item: Snippet) => String(item.id), []);
 
   return (
     <View style={globalStyles.screenContainer}>
@@ -271,11 +281,15 @@ const AllSnippetsScreen = () => {
 
       <FlatList
         data={sortedSnippets}
-        keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => <SnippetCard snippet={item} />}
+        keyExtractor={keyExtractor}
+        renderItem={renderSnippetItem}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        ListEmptyComponent={renderEmpty}
+        ListEmptyComponent={listEmptyComponent}
+        removeClippedSubviews
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={7}
       />
 
       <CustomAlert

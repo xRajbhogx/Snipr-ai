@@ -26,6 +26,7 @@ import {
 } from "@/constants/theme";
 import { useGlobalStyles } from "@/constants/useGlobalStyles";
 import { useTheme, useThemePreference } from "@/hooks/useTheme";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { useUserPreferences, SortOrder } from "@/hooks/useUserPreferences";
 import { getDashboardStats, seedDemoSnippets, deleteAllSnippets } from "@/services/db/snippets";
 import { getStorageUsage, StorageStats, wipeFileSystem, wipeDatabaseFile } from "@/services/fileService";
@@ -56,7 +57,7 @@ const PROFILE_LANGUAGES = [
 const ProfileScreen = () => {
   const theme = useTheme();
   const globalStyles = useGlobalStyles(theme);
-  const styles = makeStyles(theme);
+  const styles = useThemedStyles(makeStyles, theme);
   const { themePreference, setThemePreference } = useThemePreference();
   const { preferences, updatePreferences } = useUserPreferences();
 

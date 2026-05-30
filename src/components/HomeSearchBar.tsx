@@ -7,8 +7,9 @@ import {
     Theme,
 } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import React from "react";
+import React, { memo, useCallback } from "react";
 import { StyleSheet, TextInput, View, Pressable } from "react-native";
 
 interface HomeSearchBarProps {
@@ -20,8 +21,8 @@ interface HomeSearchBarProps {
   pointerEvents?: "box-none" | "none" | "box-only" | "auto";
 }
 
-const HomeSearchBar = React.forwardRef<TextInput, HomeSearchBarProps>(
-  (
+const HomeSearchBar = memo(
+  React.forwardRef<TextInput, HomeSearchBarProps>(function HomeSearchBar(
     {
       value,
       onChangeText,
@@ -30,16 +31,14 @@ const HomeSearchBar = React.forwardRef<TextInput, HomeSearchBarProps>(
       placeholder = "Search snippets, files, or tags",
       pointerEvents,
     },
-    ref
-  ) => {
+    ref,
+  ) {
     const theme = useTheme();
-    const styles = makeStyles(theme);
+    const styles = useThemedStyles(makeStyles, theme);
 
-    const handleClear = () => {
-      if (onChangeText) {
-        onChangeText("");
-      }
-    };
+    const handleClear = useCallback(() => {
+      onChangeText?.("");
+    }, [onChangeText]);
 
     return (
       <View style={styles.container} pointerEvents={pointerEvents}>
@@ -72,7 +71,7 @@ const HomeSearchBar = React.forwardRef<TextInput, HomeSearchBarProps>(
         )}
       </View>
     );
-  }
+  }),
 );
 
 HomeSearchBar.displayName = "HomeSearchBar";

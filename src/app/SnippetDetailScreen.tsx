@@ -10,6 +10,7 @@ import {
 } from "@/constants/theme";
 import { useGlobalStyles } from "@/constants/useGlobalStyles";
 import { useTheme } from "@/hooks/useTheme";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
 import { getSnippetById, toggleFavorite, deleteSnippet } from "@/services/db/snippets";
 import { Snippet } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -34,7 +35,7 @@ const SnippetDetailScreen = () => {
   const { id } = useLocalSearchParams();
   const theme = useTheme();
   const globalStyles = useGlobalStyles(theme);
-  const styles = makeStyles(theme);
+  const styles = useThemedStyles(makeStyles, theme);
   const [snippet, setSnippet] = useState<Snippet | null>(null);
   const [toastVisible, setToastVisible] = useState(false);
   const [toastMessage, setToastMessage] = useState("");

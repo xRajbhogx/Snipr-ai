@@ -92,15 +92,14 @@ export function useUserPreferences() {
     };
   }, []);
 
-  const updatePreferences = useCallback(
-    async (update: Partial<UserPreferences>) => {
-      const next = { ...preferences, ...update };
+  const updatePreferences = useCallback(async (update: Partial<UserPreferences>) => {
+    setPreferences((current) => {
+      const next = { ...current, ...update };
       cachedPreferences = next;
-      setPreferences(next);
-      await savePreferences(update);
-    },
-    [preferences]
-  );
+      return next;
+    });
+    await savePreferences(update);
+  }, []);
 
   return { preferences, updatePreferences, isLoading };
 }

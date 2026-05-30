@@ -9,7 +9,8 @@ import {
 } from "@/constants/theme";
 import { useTheme } from "@/hooks/useTheme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import React, { useEffect } from "react";
+import { useThemedStyles } from "@/hooks/useThemedStyles";
+import React, { memo, useEffect } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown, FadeOutDown } from "react-native-reanimated";
 
@@ -22,7 +23,7 @@ interface ToastProps {
 
 const Toast = ({ visible, message, onHide, duration = 2000 }: ToastProps) => {
   const theme = useTheme();
-  const styles = makeStyles(theme);
+  const styles = useThemedStyles(makeStyles, theme);
 
   useEffect(() => {
     if (visible) {
@@ -54,7 +55,7 @@ const Toast = ({ visible, message, onHide, duration = 2000 }: ToastProps) => {
   );
 };
 
-export default Toast;
+export default memo(Toast);
 
 const makeStyles = (theme: Theme) =>
   StyleSheet.create({
