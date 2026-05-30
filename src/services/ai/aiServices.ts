@@ -13,6 +13,7 @@ export interface AIServiceConfig {
   apiKey?: string;
   model?: string;
   temperature?: number;
+  responseType?: "json" | "text";
 }
 
 // Storage keys
@@ -132,12 +133,14 @@ export async function executeAITask(
         apiKey,
         model,
         temperature,
+        responseType: config?.responseType,
       });
     case "openai":
       return generateOpenAIContent(prompt, systemInstruction, {
         apiKey,
         model,
         temperature,
+        responseType: config?.responseType,
       });
     case "claude":
       return generateClaudeContent(prompt, systemInstruction, {

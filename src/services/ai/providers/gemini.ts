@@ -6,6 +6,7 @@ export interface GeminiConfig {
   apiKey: string;
   model?: string;
   temperature?: number;
+  responseType?: "json" | "text";
 }
 
 /**
@@ -49,6 +50,7 @@ export async function generateGeminiContent(
     },
     generationConfig: {
       temperature,
+      ...(config.responseType === "json" && { responseMimeType: "application/json" }),
     },
   };
 

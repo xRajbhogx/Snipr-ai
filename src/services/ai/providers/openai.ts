@@ -6,6 +6,7 @@ export interface OpenAIConfig {
   apiKey: string;
   model?: string;
   temperature?: number;
+  responseType?: "json" | "text";
 }
 
 /**
@@ -43,6 +44,7 @@ export async function generateOpenAIContent(
       },
     ],
     temperature,
+    ...(config.responseType === "json" && { response_format: { type: "json_object" } }),
   };
 
   try {

@@ -34,6 +34,19 @@ import Animated, {
 
 type TabType = "explanation" | "improvements" | "code";
 
+const safeParseJSON = (text: string) => {
+  if (!text) return null;
+  try {
+    let cleanText = text.trim();
+    if (cleanText.startsWith("```")) {
+      cleanText = cleanText.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
+    }
+    return JSON.parse(cleanText.trim());
+  } catch (e) {
+    return null;
+  }
+};
+
 const AiScreen = () => {
   const { id, autoGenerate } = useLocalSearchParams<{ id: string; autoGenerate?: string }>();
   const theme = useTheme();
@@ -136,15 +149,21 @@ const AiScreen = () => {
     try {
       // 1. Generate explanation
       setLoadingStep("Analyzing code & generating explanation...");
-      const explanation = await explainCode(snippet.code, snippet.language);
+      const explanation = await explainCode(snippet.code, snippet.language, { responseType: "json" });
 
       // 2. Generate improvements
       setLoadingStep("Analyzing improvements & optimizations...");
-      const improvements = await suggestImprovements(snippet.code, snippet.language);
+      const improvements = await suggestImprovements(snippet.code, snippet.language, { responseType: "json" });
 
-      // 3. Extract improved code block from markdown suggestions
+      // 3. Extract improved code block
       setLoadingStep("Finalizing recommendations...");
-      const refactoredCode = extractCodeBlock(improvements) || snippet.code;
+      let refactoredCode = snippet.code;
+      const parsedImp = safeParseJSON(improvements);
+      if (parsedImp && parsedImp.refactored_code) {
+        refactoredCode = parsedImp.refactored_code;
+      } else {
+        refactoredCode = extractCodeBlock(improvements) || snippet.code;
+      }
 
       // 4. Save to SQLite database
       updateSnippetAiDetails(
@@ -196,6 +215,18 @@ const AiScreen = () => {
     }
   }, [autoGenerate, snippet, loading, handleGenerate]);
 
+  const handleCopyOriginalCode = useCallback(async () => {
+    if (snippet?.code) {
+      try {
+        await Clipboard.setStringAsync(snippet.code);
+        setToastMessage("Original code copied to clipboard!");
+        setToastVisible(true);
+      } catch (error) {
+        // Ignore
+      }
+    }
+  }, [snippet?.code]);
+
   const handleCopyCode = useCallback(async () => {
     if (snippet?.ai_improved_code) {
       try {
@@ -229,30 +260,37 @@ const AiScreen = () => {
         return null; // Skip markdown block code fences in regular text view
       }
 
+      // Check for blockquotes/tips starting with '>'
+      const isQuote = line.trim().startsWith(">");
+      let lineText = isQuote ? line.trim().substring(1).trim() : line;
+
       // Check if it's a header line
-      const isHeader = line.startsWith("#");
+      const isHeader = lineText.startsWith("#");
       let headerLevel = 0;
       if (isHeader) {
-        headerLevel = line.match(/^#+/)?.[0].length || 0;
+        headerLevel = lineText.match(/^#+/)?.[0].length || 0;
       }
-      
-      const cleanLine = isHeader ? line.replace(/^#+\s*/, "") : line;
+      let cleanLine = isHeader ? lineText.replace(/^#+\s*/, "") : lineText;
+
+      // Check if it's a bullet point
+      const isBullet = cleanLine.trim().startsWith("-") || cleanLine.trim().startsWith("*");
+      if (isBullet) {
+        cleanLine = cleanLine.trim().replace(/^[\-\*]\s*/, "");
+      }
 
       // Parse bold tags **bold**
       const parts = cleanLine.split(/\*\*([\s\S]*?)\*\*/g);
 
-      return (
+      const textElement = (
         <Text
-          key={lineIndex}
           style={[
             styles.markdownLine,
             isHeader && styles.markdownHeader,
             headerLevel === 1 && styles.h1,
             headerLevel === 2 && styles.h2,
             headerLevel >= 3 && styles.h3,
-            line.trim().startsWith("-") || line.trim().startsWith("*")
-              ? styles.bulletLine
-              : null,
+            isBullet && styles.bulletText,
+            isQuote && styles.quoteText,
           ]}
         >
           {parts.map((part, partIndex) => {
@@ -277,8 +315,77 @@ const AiScreen = () => {
           })}
         </Text>
       );
+
+      if (isQuote) {
+        return (
+          <View key={lineIndex} style={styles.quoteContainer}>
+            <View style={styles.quoteContent}>
+              {textElement}
+            </View>
+          </View>
+        );
+      }
+
+      if (isBullet) {
+        return (
+          <View key={lineIndex} style={styles.bulletContainer}>
+            <View style={styles.bulletDot} />
+            {textElement}
+          </View>
+        );
+      }
+
+      if (isHeader) {
+        return (
+          <View key={lineIndex} style={styles.headerContainer}>
+            <View style={styles.headerIndicator} />
+            {textElement}
+          </View>
+        );
+      }
+
+      return (
+        <View key={lineIndex} style={styles.lineWrapper}>
+          {textElement}
+        </View>
+      );
     });
   }, [styles]);
+
+  const renderFormattedText = useCallback((text: string, style?: any) => {
+    if (!text) return null;
+    const parts = text.split(/\*\*([\s\S]*?)\*\*/g);
+    return (
+      <Text style={style || styles.normalText}>
+        {parts.map((part, partIndex) => {
+          const isBold = partIndex % 2 === 1;
+          const subParts = part.split(/`([\s\S]*?)`/g);
+          return subParts.map((subPart, subPartIndex) => {
+            const isInlineCode = subPartIndex % 2 === 1;
+            return (
+              <Text
+                key={`${partIndex}-${subPartIndex}`}
+                style={[
+                  isBold && styles.boldText,
+                  isInlineCode && styles.inlineCode,
+                ]}
+              >
+                {subPart}
+              </Text>
+            );
+          });
+        })}
+      </Text>
+    );
+  }, [styles]);
+
+  const explanationData = useMemo(() => {
+    return safeParseJSON(snippet?.ai_explanation || "");
+  }, [snippet?.ai_explanation]);
+
+  const improvementsData = useMemo(() => {
+    return safeParseJSON(snippet?.ai_improvement || "");
+  }, [snippet?.ai_improvement]);
 
   const parsedExplanation = useMemo(() => {
     return renderParsedMarkdown(snippet?.ai_explanation || "");
@@ -456,30 +563,151 @@ const AiScreen = () => {
             contentContainerStyle={styles.scrollContent}
           >
             <View style={{ display: activeTab === "explanation" ? "flex" : "none" }}>
-              <View style={styles.contentCard}>
-                <View style={styles.cardHeader}>
-                  <MaterialCommunityIcons name="text-box-search-outline" size={ICON_SIZE.md} color={theme.activeTab} />
-                  <Text style={styles.cardTitle}>Logic Breakdown</Text>
-                </View>
+              {explanationData ? (
                 <View style={styles.markdownBody}>
-                  {parsedExplanation}
+                  {/* Overview */}
+                  {explanationData.overview && (
+                    <View style={styles.sectionCard}>
+                      <Text style={styles.sectionSubtitle}>Overview</Text>
+                      {renderFormattedText(explanationData.overview, styles.normalText)}
+                    </View>
+                  )}
+
+                  {/* Steps */}
+                  {explanationData.steps && explanationData.steps.length > 0 && (
+                    <View style={styles.sectionCard}>
+                      <Text style={styles.sectionSubtitle}>Logical Steps</Text>
+                      {explanationData.steps.map((step: string, index: number) => (
+                        <View key={index} style={styles.bulletContainer}>
+                          <View style={styles.stepBadge}>
+                            <Text style={styles.stepBadgeText}>{index + 1}</Text>
+                          </View>
+                          {renderFormattedText(step, styles.bulletText)}
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* Key Concepts */}
+                  {explanationData.key_concepts && explanationData.key_concepts.length > 0 && (
+                    <View style={styles.sectionCard}>
+                      <Text style={styles.sectionSubtitle}>Key Concepts</Text>
+                      {explanationData.key_concepts.map((concept: any, index: number) => (
+                        <View key={index} style={styles.conceptItem}>
+                          <Text style={styles.conceptName}>{concept.concept}</Text>
+                          {renderFormattedText(concept.description, styles.conceptDesc)}
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* Complexity */}
+                  {explanationData.complexity && (
+                    <View style={styles.sectionCard}>
+                      <Text style={styles.sectionSubtitle}>Complexity Analysis</Text>
+                      <View style={styles.complexityRow}>
+                        <View style={styles.complexityBadge}>
+                          <Text style={styles.complexityLabel}>TIME</Text>
+                          <Text style={styles.complexityValue}>{explanationData.complexity.time}</Text>
+                        </View>
+                        <View style={styles.complexityBadge}>
+                          <Text style={styles.complexityLabel}>SPACE</Text>
+                          <Text style={styles.complexityValue}>{explanationData.complexity.space}</Text>
+                        </View>
+                      </View>
+                      {explanationData.complexity.details &&
+                        renderFormattedText(explanationData.complexity.details, styles.complexityDetails)}
+                    </View>
+                  )}
+
+                  {/* Tip */}
+                  {explanationData.tip && (
+                    <View style={styles.quoteContainer}>
+                      <View style={styles.quoteContent}>
+                        {renderFormattedText(explanationData.tip, styles.quoteText)}
+                      </View>
+                    </View>
+                  )}
                 </View>
-              </View>
+              ) : (
+                <View style={styles.contentCard}>
+                  <View style={styles.cardHeader}>
+                    <MaterialCommunityIcons name="text-box-search-outline" size={ICON_SIZE.md} color={theme.activeTab} />
+                    <Text style={styles.cardTitle}>Logic Breakdown</Text>
+                  </View>
+                  <View style={styles.markdownBody}>
+                    {parsedExplanation}
+                  </View>
+                </View>
+              )}
             </View>
 
             <View style={{ display: activeTab === "improvements" ? "flex" : "none" }}>
-              <View style={styles.contentCard}>
-                <View style={styles.cardHeader}>
-                  <MaterialCommunityIcons name="lightbulb-on-outline" size={ICON_SIZE.md} color={theme.scanGreen} />
-                  <Text style={styles.cardTitle}>Optimization Tips</Text>
-                </View>
+              {improvementsData ? (
                 <View style={styles.markdownBody}>
-                  {parsedImprovements}
+                  {/* Recommendations */}
+                  {improvementsData.suggestions && improvementsData.suggestions.length > 0 && (
+                    <View style={styles.sectionCard}>
+                      <Text style={styles.sectionSubtitle}>Optimizations</Text>
+                      {improvementsData.suggestions.map((suggestion: string, index: number) => (
+                        <View key={index} style={styles.bulletContainer}>
+                          <View style={styles.bulletDot} />
+                          {renderFormattedText(suggestion, styles.bulletText)}
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* Warning */}
+                  {improvementsData.warning && (
+                    <View style={styles.quoteContainer}>
+                      <View style={styles.quoteContent}>
+                        {renderFormattedText(improvementsData.warning, styles.quoteText)}
+                      </View>
+                    </View>
+                  )}
                 </View>
-              </View>
+              ) : (
+                <View style={styles.contentCard}>
+                  <View style={styles.cardHeader}>
+                    <MaterialCommunityIcons name="lightbulb-on-outline" size={ICON_SIZE.md} color={theme.scanGreen} />
+                    <Text style={styles.cardTitle}>Optimization Tips</Text>
+                  </View>
+                  <View style={styles.markdownBody}>
+                    {parsedImprovements}
+                  </View>
+                </View>
+              )}
             </View>
 
             <View style={{ display: activeTab === "code" ? "flex" : "none" }}>
+              {/* Original Code Card */}
+              <View style={[styles.contentCard, styles.codeCardOverride]}>
+                <View style={styles.codeHeaderRow}>
+                  <View style={styles.codeHeaderLeft}>
+                    <MaterialCommunityIcons name="code-tags" size={ICON_SIZE.md} color={theme.mutedText} />
+                    <Text style={styles.cardTitle}>Original Code</Text>
+                  </View>
+                  <Pressable
+                    onPress={handleCopyOriginalCode}
+                    style={({ pressed }) => [
+                      styles.copyButton,
+                      pressed && styles.copyButtonPressed,
+                    ]}
+                  >
+                    <MaterialCommunityIcons name="content-copy" size={ICON_SIZE.sm} color={theme.activeTab} />
+                    <Text style={styles.copyButtonText}>Copy</Text>
+                  </Pressable>
+                </View>
+
+                <ScrollView style={styles.codeScroller} nestedScrollEnabled={true} horizontal={true}>
+                  <ScrollView nestedScrollEnabled={true}>
+                    <Text style={styles.codeBlockText}>{snippet.code}</Text>
+                  </ScrollView>
+                </ScrollView>
+              </View>
+
+              {/* Refactored Code Card */}
               <View style={[styles.contentCard, styles.codeCardOverride]}>
                 <View style={styles.codeHeaderRow}>
                   <View style={styles.codeHeaderLeft}>
@@ -776,8 +1004,62 @@ const makeStyles = (theme: Theme) =>
       paddingHorizontal: 4,
       borderRadius: 4,
     },
-    bulletLine: {
-      paddingLeft: SPACING.md,
+    lineWrapper: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      marginVertical: 2,
+    },
+    bulletContainer: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      paddingLeft: SPACING.xs,
+      marginVertical: 4,
+    },
+    bulletDot: {
+      width: 6,
+      height: 6,
+      borderRadius: 3,
+      backgroundColor: theme.activeTab,
+      marginRight: SPACING.sm,
+      marginTop: 8,
+    },
+    bulletText: {
+      flex: 1,
+      color: theme.text,
+    },
+    headerContainer: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginTop: SPACING.md,
+      marginBottom: SPACING.xs,
+      paddingLeft: SPACING.xs,
+    },
+    headerIndicator: {
+      width: 4,
+      height: 18,
+      borderRadius: 2,
+      backgroundColor: theme.activeTab,
+      marginRight: SPACING.sm,
+    },
+    quoteContainer: {
+      flexDirection: "row",
+      backgroundColor: theme.activeTabSoft,
+      borderLeftWidth: 4,
+      borderLeftColor: theme.activeTab,
+      borderRadius: BORDER_RADIUS.sm,
+      paddingVertical: SPACING.sm,
+      paddingHorizontal: SPACING.md,
+      marginVertical: SPACING.sm,
+      alignItems: "flex-start",
+      width: "100%",
+    },
+    quoteContent: {
+      flex: 1,
+    },
+    quoteText: {
+      color: theme.text,
+      fontStyle: "italic",
+      lineHeight: 20,
     },
     codeCardOverride: {
       paddingHorizontal: SPACING.md,
@@ -828,6 +1110,94 @@ const makeStyles = (theme: Theme) =>
       fontSize: FONT_SIZE.sm,
       color: theme.codeText,
       lineHeight: 20,
+    },
+    sectionCard: {
+      backgroundColor: theme.card,
+      borderColor: theme.cardBorder,
+      borderWidth: 1,
+      borderRadius: BORDER_RADIUS.md,
+      padding: SPACING.md,
+      marginBottom: SPACING.md,
+      ...SHADOW.sm,
+    },
+    sectionSubtitle: {
+      fontSize: FONT_SIZE.md - 2,
+      fontFamily: FONT_FAMILY.bold,
+      color: theme.activeTab,
+      marginBottom: SPACING.sm,
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
+    },
+    normalText: {
+      fontSize: FONT_SIZE.sm + 2,
+      fontFamily: FONT_FAMILY.regular,
+      color: theme.text,
+      lineHeight: 22,
+    },
+    stepBadge: {
+      width: 22,
+      height: 22,
+      borderRadius: 11,
+      backgroundColor: theme.activeTabSoft,
+      justifyContent: "center",
+      alignItems: "center",
+      marginRight: SPACING.sm,
+      marginTop: 2,
+    },
+    stepBadgeText: {
+      fontSize: 11,
+      fontFamily: FONT_FAMILY.bold,
+      color: theme.activeTab,
+    },
+    conceptItem: {
+      marginBottom: SPACING.sm,
+      borderBottomWidth: 1,
+      borderBottomColor: theme.cardBorder,
+      paddingBottom: SPACING.xs,
+    },
+    conceptName: {
+      fontSize: FONT_SIZE.sm + 2,
+      fontFamily: FONT_FAMILY.bold,
+      color: theme.text,
+      marginBottom: 2,
+    },
+    conceptDesc: {
+      fontSize: FONT_SIZE.sm + 1,
+      fontFamily: FONT_FAMILY.regular,
+      color: theme.mutedText,
+      lineHeight: 18,
+    },
+    complexityRow: {
+      flexDirection: "row",
+      gap: SPACING.md,
+      marginBottom: SPACING.sm,
+    },
+    complexityBadge: {
+      flex: 1,
+      backgroundColor: theme.tagBg,
+      borderColor: theme.cardBorder,
+      borderWidth: 1,
+      borderRadius: BORDER_RADIUS.sm,
+      paddingVertical: SPACING.sm,
+      alignItems: "center",
+    },
+    complexityLabel: {
+      fontSize: 10,
+      fontFamily: FONT_FAMILY.semibold,
+      color: theme.mutedText,
+      marginBottom: 2,
+    },
+    complexityValue: {
+      fontSize: FONT_SIZE.md,
+      fontFamily: FONT_FAMILY.bold,
+      color: theme.activeTab,
+    },
+    complexityDetails: {
+      fontSize: FONT_SIZE.sm + 1,
+      fontFamily: FONT_FAMILY.regular,
+      color: theme.mutedText,
+      lineHeight: 20,
+      marginTop: SPACING.xs,
     },
     applyButton: {
       flexDirection: "row",
