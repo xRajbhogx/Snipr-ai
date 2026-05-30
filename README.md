@@ -1,4 +1,5 @@
-# PLEASE DONT EVALUATE THIS PROJECT NOW, IT IS ALMOST DONE, JUST FEW FINAL TOUCHES ARE LEFT MY EXAMS ARE GOING ON AND I WILL COMPLETE IT BEFORE THE DEADLINE(i will update this readme also before 3rd June, then you can review)... THANKS FOR UNDERSTANDING ;D
+# PLEASE DONT EVALUATE THIS PROJECT NOW, 
+# It is almost done, just few final touches are left my exams are going on and i will complete it before the deadline (i will update this readme also before 3rd June, then you can review)... THANKS FOR UNDERSTANDING ;D
 
 
 # Snipr AI — Mobile Snippet Companion 🚀
