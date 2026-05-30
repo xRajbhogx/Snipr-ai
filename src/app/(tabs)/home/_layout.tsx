@@ -16,6 +16,7 @@ export default function HomeLayout() {
       <Stack.Screen name="SearchScreen" />
       <Stack.Screen name="AllSnippetsScreen" />
       <Stack.Screen name="FavouritesScreen" />
+      <Stack.Screen name="AiExplanationsScreen" />
     </Stack>
   );
 }

@@ -61,7 +61,7 @@ const CreateSnippetScreen = () => {
   const globalStyles = useGlobalStyles(theme);
   const styles = useThemedStyles(makeStyles, theme);
 
-  const { editId } = useLocalSearchParams<{ editId?: string }>();
+  const { editId, improvedCode } = useLocalSearchParams<{ editId?: string; improvedCode?: string }>();
   const isEditing = !!editId;
 
   const { preferences } = useUserPreferences();
@@ -130,7 +130,7 @@ const CreateSnippetScreen = () => {
           setTitle(snippet.title);
           setDescription(snippet.description || "");
           setSelectedLang(snippet.language);
-          setCode(snippet.code);
+          setCode(improvedCode ? decodeURIComponent(improvedCode) : snippet.code);
           setTags(snippet.tags ? snippet.tags.split(",") : []);
           setScreenshotPath(snippet.screenshot_path || null);
         }
@@ -141,7 +141,7 @@ const CreateSnippetScreen = () => {
       // Apply the user's saved default language when creating a new snippet
       setSelectedLang(preferences.defaultLanguage);
     }
-  }, [editId, preferences.defaultLanguage]);
+  }, [editId, preferences.defaultLanguage, improvedCode]);
 
   // Line count calculations for the code editor
   const lineCount = Math.max(code.split("\n").length, 1);

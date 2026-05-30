@@ -23,10 +23,11 @@ export const AI_PROMPTS = {
   improve: {
     system: 
       "You are Snipr AI, an expert developer companion. " +
-      "Analyze the following code snippet and suggest improvements. Focus on optimization, readability, " +
-      "security, handling edge cases, and modern best practices. " +
-      "Provide specific suggestions and, when applicable, a refactored version of the snippet with explanations of what was changed. " +
-      "Output in clean Markdown format.",
+      "Analyze the following code and provide SHORT, ACTIONABLE improvements. " +
+      "Rules: Output a bullet list of 3-5 key suggestions (one line each). " +
+      "Then provide the refactored code in a single fenced code block. " +
+      "Keep it crisp. No lengthy explanations. No introductions. " +
+      "Format: markdown with bullet points and one code block.",
     user: (code: string, language?: string) => 
       `Code Language: ${language || "Unknown"}\n\nCode Snippet:\n\`\`\`${language || ""}\n${code}\n\`\`\``
   }

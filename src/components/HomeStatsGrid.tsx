@@ -36,7 +36,7 @@ const STATS_TEMPLATE: Omit<StatItem, "value">[] = [
   { key: "files", label: "Files", icon: "folder-outline" },
   { key: "screenshots", label: "Screenshots", icon: "image-outline" },
   { key: "downloads", label: "Downloads", icon: "download" },
-  { key: "trash", label: "Trash", icon: "trash-can-outline" },
+  { key: "aiExplanations", label: "AI Explanations", icon: "brain" },
 ];
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
@@ -96,7 +96,7 @@ const HomeStatsGrid = () => {
     files: 0,
     screenshots: 0,
     downloads: 0,
-    trash: 0,
+    aiExplanations: 0,
   });
 
   // Modal control states
@@ -157,7 +157,7 @@ const HomeStatsGrid = () => {
         files: exportsCount,
         screenshots: imagesCount,
         downloads: downloadsCount,
-        trash: counts.trash,
+        aiExplanations: counts.aiExplanations,
       });
     } catch (error) {
       // Ignore
@@ -190,8 +190,8 @@ const HomeStatsGrid = () => {
           case "downloads":
             value = stats.downloads.toLocaleString();
             break;
-          case "trash":
-            value = stats.trash.toLocaleString();
+          case "aiExplanations":
+            value = stats.aiExplanations.toLocaleString();
             break;
         }
         return { ...item, value };
@@ -218,6 +218,9 @@ const HomeStatsGrid = () => {
       case "downloads":
         setSelectedDir("downloads");
         setModalVisible(true);
+        break;
+      case "aiExplanations":
+        router.push("/home/AiExplanationsScreen");
         break;
       default:
         break;

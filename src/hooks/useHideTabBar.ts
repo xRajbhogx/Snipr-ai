@@ -9,7 +9,7 @@ export const useHideTabBar = () => {
 
   useFocusEffect(
     useCallback(() => {
-      const tabNavigator = navigation.getParent()?.getParent();
+      const tabNavigator = navigation.getParent();
       if (!tabNavigator) {
         return;
       }

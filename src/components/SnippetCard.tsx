@@ -34,9 +34,10 @@ const LANGUAGE_ICONS: Record<string, string> = {
 
 type SnippetCardProps = {
   snippet: Snippet;
+  onPress?: (snippet: Snippet) => void;
 };
 
-const SnippetCardComponent = ({ snippet }: SnippetCardProps) => {
+const SnippetCardComponent = ({ snippet, onPress }: SnippetCardProps) => {
   const theme = useTheme();
   const styles = useThemedStyles(makeStyles, theme);
   const iconName = LANGUAGE_ICONS[snippet.language] || "code-tags";
@@ -56,7 +57,11 @@ const SnippetCardComponent = ({ snippet }: SnippetCardProps) => {
   };
 
   const handlePress = () => {
-    router.push(`/SnippetDetailScreen?id=${snippet.id}`);
+    if (onPress) {
+      onPress(snippet);
+    } else {
+      router.push(`/SnippetDetailScreen?id=${snippet.id}`);
+    }
   };
 
   const createdDate = useMemo(
@@ -144,7 +149,8 @@ const areSnippetCardPropsEqual = (
     a.code === b.code &&
     a.language === b.language &&
     a.favorite === b.favorite &&
-    a.created_at === b.created_at
+    a.created_at === b.created_at &&
+    prev.onPress === next.onPress
   );
 };
 

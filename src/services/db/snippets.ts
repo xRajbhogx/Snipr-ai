@@ -62,6 +62,22 @@ export function updateSnippetAiSummary(id: number, summary: string) {
 }
 
 
+export function updateSnippetAiDetails(id: number, explanation: string, improvement: string, improvedCode: string) {
+  db.runSync(
+    `UPDATE snippets SET ai_explanation=?, ai_improvement=?, ai_improved_code=?, updated_at=unixepoch() WHERE id=?`,
+    [explanation, improvement, improvedCode, id]
+  );
+}
+
+
+export function clearSnippetAiDetails(id: number) {
+  db.runSync(
+    `UPDATE snippets SET ai_explanation=NULL, ai_improvement=NULL, ai_improved_code=NULL, updated_at=unixepoch() WHERE id=?`,
+    [id]
+  );
+}
+
+
 export function deleteSnippet(id: number) {
   db.runSync(`DELETE FROM snippets WHERE id = ?`, [id]);
 }
@@ -79,6 +95,11 @@ export function toggleFavorite(id: number, current: number) {
 
 export function getFavorites(): SnippetType[] {
   return db.getAllSync(`SELECT * FROM snippets WHERE favorite = 1 ORDER BY created_at DESC`) as SnippetType[];
+}
+
+
+export function getExplainedSnippets(): SnippetType[] {
+  return db.getAllSync(`SELECT * FROM snippets WHERE ai_explanation IS NOT NULL AND ai_explanation != '' ORDER BY updated_at DESC`) as SnippetType[];
 }
 
 
@@ -104,6 +125,7 @@ export function getDashboardStats() {
     const favorites = db.getFirstSync(`SELECT COUNT(*) as count FROM snippets WHERE favorite = 1`) as { count: number } | null;
     const files = db.getFirstSync(`SELECT COUNT(*) as count FROM snippets WHERE file_path IS NOT NULL`) as { count: number } | null;
     const screenshots = db.getFirstSync(`SELECT COUNT(*) as count FROM snippets WHERE screenshot_path IS NOT NULL`) as { count: number } | null;
+    const aiExplanations = db.getFirstSync(`SELECT COUNT(*) as count FROM snippets WHERE ai_explanation IS NOT NULL AND ai_explanation != ''`) as { count: number } | null;
 
     return {
       snippets: snippets?.count || 0,
@@ -111,7 +133,7 @@ export function getDashboardStats() {
       files: files?.count || 0,
       screenshots: screenshots?.count || 0,
       downloads: 0,
-      trash: 0,
+      aiExplanations: aiExplanations?.count || 0,
     };
   } catch (error) {
     return {
@@ -120,7 +142,7 @@ export function getDashboardStats() {
       files: 0,
       screenshots: 0,
       downloads: 0,
-      trash: 0,
+      aiExplanations: 0,
     };
   }
 }

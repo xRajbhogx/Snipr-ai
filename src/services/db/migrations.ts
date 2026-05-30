@@ -6,6 +6,23 @@
 import db from './client'
 
 export function runMigrations() {
+  // Alter existing table if columns are missing
+  try {
+    db.execSync(`ALTER TABLE snippets ADD COLUMN ai_explanation TEXT;`);
+  } catch (e) {
+    // Ignore if column already exists
+  }
+  try {
+    db.execSync(`ALTER TABLE snippets ADD COLUMN ai_improvement TEXT;`);
+  } catch (e) {
+    // Ignore if column already exists
+  }
+  try {
+    db.execSync(`ALTER TABLE snippets ADD COLUMN ai_improved_code TEXT;`);
+  } catch (e) {
+    // Ignore if column already exists
+  }
+
   db.execSync(`
     
     CREATE TABLE IF NOT EXISTS snippets (
@@ -24,6 +41,9 @@ export function runMigrations() {
       screenshot_path TEXT,
 
       ai_summary TEXT,
+      ai_explanation TEXT,
+      ai_improvement TEXT,
+      ai_improved_code TEXT,
 
       created_at INTEGER DEFAULT (unixepoch()),
       updated_at INTEGER DEFAULT (unixepoch())

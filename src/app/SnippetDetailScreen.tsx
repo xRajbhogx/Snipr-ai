@@ -114,6 +114,13 @@ const SnippetDetailScreen = () => {
     }
   };
 
+  const handleAiAnalysis = () => {
+    if (snippet) {
+      const hasAi = !!(snippet.ai_explanation && snippet.ai_explanation.trim().length > 0);
+      router.push(`/AiScreen?id=${snippet.id}${!hasAi ? "&autoGenerate=true" : ""}`);
+    }
+  };
+
   const handleToggleFavorite = () => {
     if (snippet) {
       try {
@@ -321,6 +328,30 @@ const SnippetDetailScreen = () => {
           </View>
         </View>
 
+        {/* AI Analysis CTA */}
+        <Pressable
+          onPress={handleAiAnalysis}
+          style={({ pressed }) => [
+            styles.aiButton,
+            pressed && styles.copyButtonPressed,
+          ]}
+        >
+          <View style={styles.aiButtonLeft}>
+            <MaterialCommunityIcons name="brain" size={ICON_SIZE.lg} color={theme.activeTab} />
+            <View style={styles.aiButtonTexts}>
+              <Text style={styles.aiButtonTitle}>
+                {snippet.ai_explanation ? "View AI Insights" : "Analyze with AI"}
+              </Text>
+              <Text style={styles.aiButtonDesc}>
+                {snippet.ai_explanation
+                  ? "Explanation, optimizations & refactored code"
+                  : "Get explanation, improvements & refactored code"}
+              </Text>
+            </View>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={ICON_SIZE.lg} color={theme.mutedText} />
+        </Pressable>
+
         {/* Attachments Section */}
         {snippet.screenshot_path && (
           <View style={styles.section}>
@@ -442,6 +473,38 @@ const makeStyles = (theme: Theme) =>
       flexDirection: "row",
       alignItems: "center",
       gap: SPACING.sm,
+    },
+    aiButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      backgroundColor: theme.activeTabSoft,
+      borderWidth: 1,
+      borderColor: theme.activeTabSoft,
+      borderRadius: BORDER_RADIUS.md,
+      paddingVertical: SPACING.md,
+      paddingHorizontal: SPACING.md,
+      marginBottom: SPACING.xl,
+    },
+    aiButtonLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACING.md,
+      flex: 1,
+    },
+    aiButtonTexts: {
+      flex: 1,
+    },
+    aiButtonTitle: {
+      fontSize: FONT_SIZE.md - 1,
+      fontFamily: FONT_FAMILY.semibold,
+      color: theme.text,
+    },
+    aiButtonDesc: {
+      fontSize: FONT_SIZE.sm,
+      fontFamily: FONT_FAMILY.regular,
+      color: theme.mutedText,
+      marginTop: 1,
     },
     iconButton: {
       padding: SPACING.sm,

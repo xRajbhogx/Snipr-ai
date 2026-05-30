@@ -18,6 +18,7 @@ const HOME_STACK_OVERLAY_SCREENS = new Set([
   "AllSnippetsScreen",
   "FavouritesScreen",
   "SearchScreen",
+  "AiExplanationsScreen",
 ]);
 
 const TabHomeIcon = ({ color, size }: { color: string; size: number }) => (
@@ -94,10 +95,10 @@ export default function RootLayout() {
       headerShown: false,
       tabBarActiveTintColor: theme.activeTab,
       tabBarInactiveTintColor: theme.inactiveTab,
-      tabBarStyle: getTabBarStyle(theme),
+      tabBarStyle: isHomeOverlayScreen ? { display: "none" as const } : getTabBarStyle(theme),
       sceneStyle: { backgroundColor: theme.background },
     }),
-    [theme],
+    [theme, isHomeOverlayScreen],
   );
 
   return (
