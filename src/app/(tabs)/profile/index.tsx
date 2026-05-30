@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { useFocusEffect } from "expo-router";
 import Animated, { SlideInDown, SlideOutDown } from "react-native-reanimated";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, AntDesign } from "@expo/vector-icons";
 
 import {
   BORDER_RADIUS,
@@ -73,8 +73,8 @@ const AI_PROVIDERS: { id: AIProvider; label: string; icon: string }[] = [
 ];
 
 const PROVIDER_MODELS: Record<AIProvider, string[]> = {
-  gemini: ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"],
-  openai: ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"],
+  gemini: ["gemini-3.1-pro", "gemini-3.1-flash-lite", "gemini-3-flash-preview", "gemini-3-pro-preview"],
+  openai: ["gpt-5.5", "gpt-5.4", "gpt-5.4-mini"],
   claude: ["claude-opus-4-8", "claude-sonnet-4-6", "claude-haiku-4-5"],
 };
 
@@ -100,7 +100,7 @@ const ProfileScreen = () => {
   const [showAIModal, setShowAIModal] = useState(false);
   const [aiProvider, setAiProvider] = useState<AIProvider>("gemini");
   const apiKeyRef = useRef("");
-  const [aiModel, setAiModel] = useState("gemini-1.5-flash");
+  const [aiModel, setAiModel] = useState("gemini-3.1-flash-lite");
   const [secureTextEntry, setSecureTextEntry] = useState(true);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
 
@@ -573,8 +573,8 @@ const ProfileScreen = () => {
           >
             <View style={styles.menuLeft}>
               <View style={[styles.menuIconBox, { backgroundColor: theme.aiIconSoft }]}>
-                <MaterialCommunityIcons
-                  name="robot-outline"
+                <AntDesign
+                  name="open-ai"
                   size={ICON_SIZE.md}
                   color={theme.aiIcon}
                 />
@@ -727,12 +727,21 @@ const ProfileScreen = () => {
                         pressed && styles.themeButtonPressed,
                       ]}
                     >
-                      <MaterialCommunityIcons
-                        name={provider.icon as any}
-                        size={ICON_SIZE.md}
-                        color={isActive ? theme.white : theme.mutedText}
-                        style={styles.themeIcon}
-                      />
+                      {provider.id === "openai" ? (
+                        <AntDesign
+                          name="open-ai"
+                          size={ICON_SIZE.md}
+                          color={isActive ? theme.white : theme.mutedText}
+                          style={styles.themeIcon}
+                        />
+                      ) : (
+                        <MaterialCommunityIcons
+                          name={provider.icon as any}
+                          size={ICON_SIZE.md}
+                          color={isActive ? theme.white : theme.mutedText}
+                          style={styles.themeIcon}
+                        />
+                      )}
                       <Text
                         style={[
                           styles.themeText,

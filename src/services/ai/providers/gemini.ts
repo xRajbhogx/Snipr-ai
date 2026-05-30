@@ -26,7 +26,7 @@ export async function generateGeminiContent(
     throw new Error("Gemini API key is not configured.");
   }
 
-  const model = config.model || "gemini-1.5-flash";
+  const model = config.model || "gemini-3.1-flash-lite";
   const temperature = config.temperature ?? 0.2;
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 

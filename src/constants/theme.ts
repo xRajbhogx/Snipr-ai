@@ -22,7 +22,7 @@ export const COLORS = {
     fileIcon: "#F5A623",
     scanGreen: "#7ED321",
     aiIcon: "#a855f7",
-    aiIconSoft: "rgba(168, 85, 247, 0.12)",
+    aiIconSoft: "rgba(104, 85, 247, 0.12)",
   },
   dark: {
     background: "#1c1c1c",
@@ -46,8 +46,8 @@ export const COLORS = {
     overlay: "#1c1c1c",
     fileIcon: "#F5A623",
     scanGreen: "#7ED321",
-    aiIcon: "#c084fc",
-    aiIconSoft: "rgba(192, 132, 252, 0.16)",
+    aiIcon: "#1aff00ff",
+    aiIconSoft: "rgba(129, 255, 127, 0.2)",
   },
 };
 export type Theme = typeof COLORS.light;

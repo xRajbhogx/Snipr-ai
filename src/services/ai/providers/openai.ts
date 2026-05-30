@@ -26,7 +26,7 @@ export async function generateOpenAIContent(
     throw new Error("OpenAI API key is not configured.");
   }
 
-  const model = config.model || "gpt-4o-mini";
+  const model = config.model || "gpt-5.4-mini";
   const temperature = config.temperature ?? 0.7;
   const url = "https://api.openai.com/v1/chat/completions";
 
