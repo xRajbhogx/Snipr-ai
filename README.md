@@ -19,7 +19,11 @@
 By integrating a local SQL engine, intelligent AI providers, a dynamic sandboxed file export workflow, and a camera/gallery-based OCR code extractor, Snipr AI delivers a frictionless personal developer vault that operates seamlessly without requiring an internet connection.
 
 ### 📱 Product Demos & Walkthroughs
-* **App Demonstration Clip:** [Watch the Attachment Preview](https://github.com/user-attachments/assets/cb206b13-d9ce-4b5e-96e9-d27f38b408b9)
+* **App Demonstration Clip:** [Watch the Attachment Preview](
+
+https://github.com/user-attachments/assets/627b62b1-664b-480f-801f-cc59ac767f9b
+
+)
 * **Video Walkthrough (Build, Tech Stack & Design):** [Google Drive Presentation](https://drive.google.com/file/d/1oIBoOHCl1DcQ-mr2_HpKBc8VyKtU0USk/view?usp=sharing)
 
 ---
