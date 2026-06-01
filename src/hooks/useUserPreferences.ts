@@ -6,6 +6,7 @@ export type SortOrder = "newest" | "oldest" | "alphabetical";
 export interface UserPreferences {
   defaultLanguage: string;
   sortOrder: SortOrder;
+  isOnboarded: boolean;
 }
 
 const PREFS_KEY = "@snipr_user_preferences";
@@ -13,6 +14,7 @@ const PREFS_KEY = "@snipr_user_preferences";
 const DEFAULT_PREFERENCES: UserPreferences = {
   defaultLanguage: "TypeScript",
   sortOrder: "newest",
+  isOnboarded: false,
 };
 
 let cachedPreferences: UserPreferences | null = null;
