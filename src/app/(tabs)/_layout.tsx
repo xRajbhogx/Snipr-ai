@@ -96,6 +96,7 @@ export default function RootLayout() {
       tabBarActiveTintColor: theme.activeTab,
       tabBarInactiveTintColor: theme.inactiveTab,
       tabBarStyle: isHomeOverlayScreen ? { display: "none" as const } : getTabBarStyle(theme),
+      tabBarTranslucent: false,
       sceneStyle: { backgroundColor: theme.background },
     }),
     [theme, isHomeOverlayScreen],

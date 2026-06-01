@@ -268,6 +268,26 @@ export async function readFile(path: string): Promise<string> {
 }
 
 /**
+ * Reads the content of a file as a base64 string
+ */
+export async function readFileAsBase64(path: string): Promise<string> {
+  try {
+    const info = await FileSystem.getInfoAsync(path);
+    if (!info.exists) {
+      throw new FileNotFoundError(path);
+    }
+    return await FileSystem.readAsStringAsync(path, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+  } catch (error) {
+    if (error instanceof FileNotFoundError) {
+      throw error;
+    }
+    throw new FileOperationError("readFileAsBase64", path, error);
+  }
+}
+
+/**
  * Updates the text content of an existing file
  */
 export async function updateFile(

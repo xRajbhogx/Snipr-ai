@@ -17,6 +17,7 @@ import {
   getSnippetById,
   updateSnippet,
 } from "@/services/db/snippets";
+import { performOCR } from "@/services/ai/aiServices";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { router, useLocalSearchParams } from "expo-router";
@@ -202,6 +203,12 @@ const CreateSnippetScreen = () => {
     }
   };
 
+  // Clear Code
+  const handleClearCode = () => {
+    setCode("");
+    showToast("Editor cleared");
+  };
+
   // Attachment Actions
   const handleAttachScreenshot = async () => {
     try {
@@ -236,21 +243,77 @@ const CreateSnippetScreen = () => {
 
 
 
-  // Simulated OCR Scanner
-  const handleOcrScan = () => {
+  // AI-powered OCR Scanner
+  const handleOcrScan = async () => {
+    let imageToScan = screenshotPath;
+
+    if (!imageToScan) {
+      try {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== "granted") {
+          showAlert(
+            "Permission Required",
+            "We need permission to access your photo library to scan a screenshot."
+          );
+          return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ["images"],
+          quality: 1,
+          allowsMultipleSelection: false,
+        });
+
+        if (result.canceled || !result.assets || result.assets.length === 0) {
+          return;
+        }
+
+        const pickedUri = result.assets[0].uri;
+        setIsScanningOcr(true);
+        const storedPath = await saveSnippetImage(pickedUri, title.trim() || undefined);
+        setScreenshotPath(storedPath);
+        showToast("Screenshot attached!");
+        imageToScan = storedPath;
+      } catch (error) {
+        showAlert("Scan Failed", "An error occurred while picking the screenshot.");
+        setIsScanningOcr(false);
+        return;
+      }
+    }
+
+    if (!imageToScan) return;
+
     setIsScanningOcr(true);
-    setTimeout(() => {
-      setIsScanningOcr(false);
-      setCode(
-        (prev) =>
-          (prev ? prev + "\n\n" : "") +
-          `// Extracted via OCR Scan\nfunction greetUser(name: string) {\n  return \`Hello, \${name}!\`;\n}`,
-      );
+
+    try {
+      const extractedCode = await performOCR(imageToScan);
+      if (extractedCode && extractedCode.trim()) {
+        setCode((prev) => (prev ? prev + "\n\n" + extractedCode : extractedCode));
+        showAlert(
+          "OCR Success",
+          "Code has been successfully scanned and extracted into the editor."
+        );
+      } else {
+        throw new Error("No code could be extracted from the image.");
+      }
+    } catch (error: any) {
+      const errMsg = error.message || "An unexpected error occurred during OCR scanning.";
       showAlert(
-        "OCR Success",
-        "Code has been successfully scanned and extracted into the editor.",
+        "OCR Scan Failed",
+        errMsg,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Configure AI",
+            onPress: () => {
+              router.navigate("/(tabs)/profile");
+            },
+          },
+        ]
       );
-    }, 1500);
+    } finally {
+      setIsScanningOcr(false);
+    }
   };
 
   // SQLite Save Handler
@@ -566,14 +629,27 @@ const CreateSnippetScreen = () => {
         <View style={styles.section}>
           <View style={styles.codeHeaderRow}>
             <Text style={styles.sectionHeader}>Code</Text>
-            <Pressable onPress={handlePaste} style={styles.pasteButton}>
-              <MaterialCommunityIcons
-                name="clipboard-outline"
-                size={ICON_SIZE.md}
-                color={theme.activeTab}
-              />
-              <Text style={styles.pasteButtonText}>Paste</Text>
-            </Pressable>
+            <View style={styles.codeActionsRow}>
+              <Pressable onPress={handlePaste} style={styles.pasteButton}>
+                <MaterialCommunityIcons
+                  name="clipboard-outline"
+                  size={ICON_SIZE.md}
+                  color={theme.activeTab}
+                />
+                <Text style={styles.pasteButtonText}>Paste</Text>
+              </Pressable>
+              
+              {code.trim().length > 0 && (
+                <Pressable onPress={handleClearCode} style={styles.clearButton}>
+                  <MaterialCommunityIcons
+                    name="trash-can-outline"
+                    size={ICON_SIZE.md}
+                    color={theme.activeTab}
+                  />
+                  <Text style={styles.clearButtonText}>Clear</Text>
+                </Pressable>
+              )}
+            </View>
           </View>
           <View style={styles.codeContainer}>
             <ScrollView 
@@ -846,6 +922,25 @@ const makeStyles = (theme: Theme) =>
       backgroundColor: theme.tagBg,
     },
     pasteButtonText: {
+      color: theme.activeTab,
+      fontSize: FONT_SIZE.sm,
+      fontFamily: FONT_FAMILY.semibold,
+    },
+    codeActionsRow: {
+      flexDirection: "row",
+      gap: SPACING.sm,
+      alignItems: "center",
+    },
+    clearButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: SPACING.xs,
+      paddingVertical: SPACING.xs,
+      paddingHorizontal: SPACING.sm,
+      borderRadius: BORDER_RADIUS.sm,
+      backgroundColor: theme.tagBg,
+    },
+    clearButtonText: {
       color: theme.activeTab,
       fontSize: FONT_SIZE.sm,
       fontFamily: FONT_FAMILY.semibold,

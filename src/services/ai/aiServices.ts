@@ -1,10 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
-import { generateClaudeContent } from "./providers/claude";
-import { generateGeminiContent } from "./providers/gemini";
-import { generateOpenAIContent } from "./providers/openai";
+import { generateClaudeContent, generateClaudeVisionContent } from "./providers/claude";
+import { generateGeminiContent, generateGeminiVisionContent } from "./providers/gemini";
+import { generateOpenAIContent, generateOpenAIVisionContent } from "./providers/openai";
 import { AI_PROMPTS } from "./prompts";
+import { readFileAsBase64 } from "../fileService";
 
 export type AIProvider = "gemini" | "openai" | "claude";
 
@@ -189,4 +190,73 @@ export async function suggestImprovements(
   const prompt = AI_PROMPTS.improve.user(code, language);
   const systemInstruction = AI_PROMPTS.improve.system;
   return executeAITask(prompt, systemInstruction, config);
+}
+
+/**
+ * General helper to execute a vision/multimodal prompt task on the configured AI provider.
+ */
+export async function executeAIVisionTask(
+  prompt: string,
+  systemInstruction: string,
+  base64Data: string,
+  mimeType: string,
+  config?: AIServiceConfig
+): Promise<string> {
+  const provider = config?.provider || (await getStoredAIProvider());
+  const apiKey = config?.apiKey || (await getStoredAPIKey(provider)) || "";
+  const model = config?.model || (await getStoredModel(provider)) || undefined;
+  const temperature = config?.temperature;
+
+  if (!apiKey) {
+    throw new Error(`API Key is missing for ${provider}. Please configure it in Settings.`);
+  }
+
+  switch (provider) {
+    case "gemini":
+      return generateGeminiVisionContent(prompt, systemInstruction, base64Data, mimeType, {
+        apiKey,
+        model,
+        temperature,
+      });
+    case "openai":
+      return generateOpenAIVisionContent(prompt, systemInstruction, base64Data, mimeType, {
+        apiKey,
+        model,
+        temperature,
+      });
+    case "claude":
+      return generateClaudeVisionContent(prompt, systemInstruction, base64Data, mimeType, {
+        apiKey,
+        model,
+      });
+    default:
+      throw new Error(`Unsupported AI provider: ${provider}`);
+  }
+}
+
+/**
+ * Performs OCR code extraction from an image.
+ */
+export async function performOCR(
+  imagePath: string,
+  config?: AIServiceConfig
+): Promise<string> {
+  // Read image as base64
+  const base64Data = await readFileAsBase64(imagePath);
+
+  // Determine mimeType based on extension
+  const ext = imagePath.split(".").pop()?.toLowerCase();
+  let mimeType = "image/jpeg";
+  if (ext === "png") {
+    mimeType = "image/png";
+  } else if (ext === "webp") {
+    mimeType = "image/webp";
+  } else if (ext === "gif") {
+    mimeType = "image/gif";
+  }
+
+  const prompt = AI_PROMPTS.ocr.user;
+  const systemInstruction = AI_PROMPTS.ocr.system;
+
+  return executeAIVisionTask(prompt, systemInstruction, base64Data, mimeType, config);
 }

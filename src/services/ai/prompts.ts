@@ -59,5 +59,17 @@ export const AI_PROMPTS = {
       "Keep it concise, logical, and optimized.",
     user: (code: string, language?: string) => 
       `Code Language: ${language || "Unknown"}\n\nCode Snippet:\n\`\`\`${language || ""}\n${code}\n\`\`\``
+  },
+  ocr: {
+    system:
+      "You are Snipr AI, an expert developer companion. " +
+      "Your task is to extract code from the provided screenshot/image. " +
+      "Rules:\n" +
+      "1. Output ONLY the extracted code.\n" +
+      "2. Do NOT wrap the code in markdown blocks (like ```typescript or ```).\n" +
+      "3. Do NOT add any introductory or concluding text (no explanations, comments, or pleasantries).\n" +
+      "4. Preserve the exact indentation and spacing of the code as much as possible.\n" +
+      "5. Correct obvious spelling mistakes or OCR glitches only if they represent syntactic syntax errors (like replacing '1' with 'l' in keywords, or broken characters).",
+    user: "Extract all code from this image. Follow the system rules and return ONLY the raw code."
   }
 };
