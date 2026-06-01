@@ -334,8 +334,9 @@ const CreateSnippetScreen = () => {
       exiting={SlideOutDown.duration(300)}
     >
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardAvoiding}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 88 : 0}
       >
         {/* Header matching SnippetDetailScreen */}
         <View style={[globalStyles.headerRow, styles.header]}>

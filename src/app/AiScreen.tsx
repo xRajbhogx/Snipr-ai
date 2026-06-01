@@ -18,6 +18,7 @@ import { Snippet } from "@/types";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Clipboard from "expo-clipboard";
 import { router, useLocalSearchParams } from "expo-router";
+import { renderHighlightedCode } from "@/utils/highlighter";
 import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import {
   ActivityIndicator,
@@ -702,7 +703,9 @@ const AiScreen = () => {
 
                 <ScrollView style={styles.codeScroller} nestedScrollEnabled={true} horizontal={true}>
                   <ScrollView nestedScrollEnabled={true}>
-                    <Text style={styles.codeBlockText}>{snippet.code}</Text>
+                    <Text style={styles.codeBlockText}>
+                      {renderHighlightedCode(snippet.code, snippet.language, theme)}
+                    </Text>
                   </ScrollView>
                 </ScrollView>
               </View>
@@ -728,7 +731,9 @@ const AiScreen = () => {
 
                 <ScrollView style={styles.codeScroller} nestedScrollEnabled={true} horizontal={true}>
                   <ScrollView nestedScrollEnabled={true}>
-                    <Text style={styles.codeBlockText}>{snippet.ai_improved_code}</Text>
+                    <Text style={styles.codeBlockText}>
+                      {snippet.ai_improved_code ? renderHighlightedCode(snippet.ai_improved_code, snippet.language, theme) : null}
+                    </Text>
                   </ScrollView>
                 </ScrollView>
               </View>

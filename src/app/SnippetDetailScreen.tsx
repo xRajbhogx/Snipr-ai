@@ -21,6 +21,7 @@ import Toast from "@/components/Toast";
 import * as Clipboard from "expo-clipboard";
 import { Image } from "expo-image";
 import { exportSnippetAsFile } from "@/services/fileService";
+import { renderHighlightedCode } from "@/utils/highlighter";
 import {
   Modal,
   Pressable,
@@ -322,7 +323,9 @@ const SnippetDetailScreen = () => {
           <View style={styles.codeContainer}>
             <ScrollView showsVerticalScrollIndicator={true} nestedScrollEnabled={true}>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <Text style={styles.codeText}>{snippet.code}</Text>
+                <Text style={styles.codeText}>
+                  {renderHighlightedCode(snippet.code, snippet.language, theme)}
+                </Text>
               </ScrollView>
             </ScrollView>
           </View>
