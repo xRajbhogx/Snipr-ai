@@ -6,6 +6,7 @@
 # Snipr AI — Mobile Snippet Companion 🚀
 
 https://github.com/user-attachments/assets/cb206b13-d9ce-4b5e-96e9-d27f38b408b9
+
 https://drive.google.com/file/d/19jNVngUDCF7iCqsdR6HCsn0_nqJ8rKJs/view?usp=sharing
 
 Snipr AI is an offline-first developer vault application designed specifically for mobile platforms (iOS and Android). It enables developers to store, categorize, search, manage, and synchronise reusable code snippets and technical resources directly from their mobile devices, functioning seamlessly without an internet connection.
