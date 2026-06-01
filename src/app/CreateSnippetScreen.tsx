@@ -130,7 +130,7 @@ const CreateSnippetScreen = () => {
           setTitle(snippet.title);
           setDescription(snippet.description || "");
           setSelectedLang(snippet.language);
-          setCode(improvedCode ? decodeURIComponent(improvedCode) : snippet.code);
+          setCode(improvedCode ? decodeURIComponent(improvedCode).trim() : snippet.code.trim());
           setTags(snippet.tags ? snippet.tags.split(",") : []);
           setScreenshotPath(snippet.screenshot_path || null);
         }
@@ -143,12 +143,7 @@ const CreateSnippetScreen = () => {
     }
   }, [editId, preferences.defaultLanguage, improvedCode]);
 
-  // Line count calculations for the code editor
-  const lineCount = Math.max(code.split("\n").length, 1);
-  const lineNumbersText = Array.from(
-    { length: lineCount },
-    (_, i) => i + 1,
-  ).join("\n");
+
 
   // Current Date display matching SnippetDetailScreen
   const currentDate = new Date().toLocaleDateString(undefined, {
@@ -581,24 +576,27 @@ const CreateSnippetScreen = () => {
             </Pressable>
           </View>
           <View style={styles.codeContainer}>
-            <View style={styles.codeBody}>
-              <View style={styles.lineNumbers}>
-                <Text style={styles.lineNumberText}>{lineNumbersText}</Text>
+            <ScrollView 
+              style={styles.editorScroller} 
+              nestedScrollEnabled={true}
+              showsVerticalScrollIndicator={true}
+            >
+              <View style={styles.codeBody}>
+                <TextInput
+                  style={styles.codeEditor}
+                  multiline
+                  value={code}
+                  onChangeText={setCode}
+                  placeholder="Write or paste your code here..."
+                  placeholderTextColor={theme.mutedText}
+                  textAlignVertical="top"
+                  editable={true}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  scrollEnabled={false}
+                />
               </View>
-              <TextInput
-                style={styles.codeEditor}
-                multiline
-                value={code}
-                onChangeText={setCode}
-                placeholder="Write or paste your code here..."
-                placeholderTextColor={theme.mutedText}
-                textAlignVertical="top"
-                editable={true}
-                autoCapitalize="none"
-                autoCorrect={false}
-                scrollEnabled={false}
-              />
-            </View>
+            </ScrollView>
           </View>
         </View>
       </ScrollView>
@@ -859,21 +857,12 @@ const makeStyles = (theme: Theme) =>
       borderColor: theme.cardBorder,
       ...SHADOW.sm,
     },
+    editorScroller: {
+      maxHeight: 300,
+    },
     codeBody: {
       flexDirection: "row",
       paddingVertical: SPACING.md,
-    },
-    lineNumbers: {
-      paddingHorizontal: SPACING.sm,
-      alignItems: "flex-end",
-      minWidth: 36,
-    },
-    lineNumberText: {
-      color: theme.mutedText,
-      fontFamily: "monospace",
-      fontSize: FONT_SIZE.sm,
-      lineHeight: 22,
-      textAlign: "right",
     },
     codeEditor: {
       flex: 1,
@@ -881,10 +870,12 @@ const makeStyles = (theme: Theme) =>
       fontFamily: "monospace",
       fontSize: FONT_SIZE.sm,
       lineHeight: 22,
+      paddingLeft: SPACING.md,
       paddingRight: SPACING.md,
       minHeight: 180,
       textAlignVertical: "top",
       padding: 0,
+      includeFontPadding: false,
     },
     attachmentsRow: {
       flexDirection: "row",
