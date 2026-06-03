@@ -124,11 +124,11 @@ const AiRefactoredCodeTab = ({
                   const isAdded = line.type === "added";
                   const isRemoved = line.type === "removed";
 
-                  // Higher contrast backgrounds for accessibility and distinct visual appearance
+                  // Themed diff line background colors
                   const lineBg = isAdded
-                    ? "rgba(34, 197, 94, 0.2)"
+                    ? theme.diffAddedBg
                     : isRemoved
-                      ? "rgba(255, 77, 77, 0.18)"
+                      ? theme.diffRemovedBg
                       : "transparent";
 
                   const prefix = isAdded ? "+ " : isRemoved ? "- " : "  ";
@@ -272,7 +272,7 @@ const makeStyles = (theme: Theme) =>
       paddingVertical: 2,
       paddingHorizontal: SPACING.sm,
       minWidth: "100%",
-      borderLeftWidth: 4,
+      borderLeftWidth: SPACING.xs,
     },
     prefixText: {
       fontFamily: "monospace",
@@ -354,7 +354,7 @@ const makeStyles = (theme: Theme) =>
     quoteContainer: {
       flexDirection: "row",
       backgroundColor: theme.activeTabSoft,
-      borderLeftWidth: 4,
+      borderLeftWidth: SPACING.xs,
       borderLeftColor: theme.activeTab,
       borderRadius: BORDER_RADIUS.sm,
       paddingVertical: SPACING.sm,
