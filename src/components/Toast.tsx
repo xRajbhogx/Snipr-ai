@@ -10,7 +10,7 @@ import {
 import { useTheme } from "@/hooks/useTheme";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useThemedStyles } from "@/hooks/useThemedStyles";
-import React, { memo, useEffect } from "react";
+import React, { memo, useEffect, useRef } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, { FadeInDown, FadeOutDown } from "react-native-reanimated";
 
@@ -25,14 +25,18 @@ const Toast = ({ visible, message, onHide, duration = 2000 }: ToastProps) => {
   const theme = useTheme();
   const styles = useThemedStyles(makeStyles, theme);
 
+  // Stable ref so the timer never restarts when the parent re-renders with a new onHide reference
+  const onHideRef = useRef(onHide);
+  onHideRef.current = onHide;
+
   useEffect(() => {
     if (visible) {
       const timer = setTimeout(() => {
-        onHide();
+        onHideRef.current();
       }, duration);
       return () => clearTimeout(timer);
     }
-  }, [visible, message, duration, onHide]);
+  }, [visible, message, duration]);
 
   if (!visible) return null;
 

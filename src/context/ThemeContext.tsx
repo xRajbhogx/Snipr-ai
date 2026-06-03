@@ -27,10 +27,6 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const deviceScheme = useColorScheme();
   const [themePreference, setThemePreferenceState] = useState<ThemePreference>("system");
   const [isThemeLoading, setIsThemeLoading] = useState(true);
-  const [activeTheme, setActiveTheme] = useState<Theme>(
-    deviceScheme === "dark" ? COLORS.dark : COLORS.light
-  );
-
   // Load saved preference on mount
   useEffect(() => {
     const loadPreference = async () => {
@@ -48,13 +44,12 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     loadPreference();
   }, []);
 
-  // Update active theme when preference or device color scheme changes
-  useEffect(() => {
+  // Derive active theme synchronously — avoids double render from state+effect
+  const activeTheme = useMemo<Theme>(() => {
     if (themePreference === "system") {
-      setActiveTheme(deviceScheme === "dark" ? COLORS.dark : COLORS.light);
-    } else {
-      setActiveTheme(themePreference === "dark" ? COLORS.dark : COLORS.light);
+      return deviceScheme === "dark" ? COLORS.dark : COLORS.light;
     }
+    return themePreference === "dark" ? COLORS.dark : COLORS.light;
   }, [themePreference, deviceScheme]);
 
   const setThemePreference = useCallback(async (pref: ThemePreference) => {

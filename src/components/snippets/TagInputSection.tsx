@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import {
@@ -24,7 +24,7 @@ const TagInputSection = ({ tags, onTagsChange }: TagInputSectionProps) => {
   const styles = useThemedStyles(makeStyles, theme);
   const [tagInput, setTagInput] = useState("");
 
-  const handleAddTag = () => {
+  const handleAddTag = useCallback(() => {
     if (tagInput.trim()) {
       const newTag = tagInput.trim().toLowerCase();
       if (!tags.includes(newTag)) {
@@ -32,13 +32,13 @@ const TagInputSection = ({ tags, onTagsChange }: TagInputSectionProps) => {
       }
       setTagInput("");
     }
-  };
+  }, [tagInput, tags, onTagsChange]);
 
-  const handleRemoveTag = (indexToRemove: number) => {
+  const handleRemoveTag = useCallback((indexToRemove: number) => {
     onTagsChange(tags.filter((_, idx) => idx !== indexToRemove));
-  };
+  }, [tags, onTagsChange]);
 
-  const handleTagInputChange = (text: string) => {
+  const handleTagInputChange = useCallback((text: string) => {
     if (text.endsWith(",") || text.endsWith(" ")) {
       const tagValue = text.slice(0, -1).trim().toLowerCase();
       if (tagValue) {
@@ -50,14 +50,14 @@ const TagInputSection = ({ tags, onTagsChange }: TagInputSectionProps) => {
     } else {
       setTagInput(text);
     }
-  };
+  }, [tags, onTagsChange]);
 
   return (
     <View style={styles.section}>
       <Text style={styles.sectionHeader}>Tags</Text>
       <View style={styles.tagsContainer}>
         {tags.map((tag, index) => (
-          <View key={index} style={styles.tagChip}>
+          <View key={tag} style={styles.tagChip}>
             <Text style={styles.tagText}>#{tag}</Text>
             <Pressable
               onPress={() => handleRemoveTag(index)}

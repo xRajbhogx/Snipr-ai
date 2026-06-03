@@ -22,6 +22,11 @@ const keywordsMap: Record<string, string[]> = {
   php: ["function", "class", "interface", "trait", "extends", "implements", "public", "private", "protected", "static", "final", "abstract", "return", "if", "else", "elseif", "foreach", "for", "while", "do", "switch", "case", "break", "continue", "default", "new", "clone", "try", "catch", "finally", "throw", "namespace", "use", "echo", "print", "die", "exit", "empty", "isset", "unset", "include", "require", "include_once", "require_once", "null", "true", "false"]
 };
 
+// Pre-compute keyword Sets at module load — avoids rebuilding per tokenize() call
+const keywordsSets: Record<string, Set<string>> = Object.fromEntries(
+  Object.entries(keywordsMap).map(([lang, words]) => [lang, new Set(words)])
+);
+
 const commonTypes = new Set([
   "string", "number", "boolean", "any", "unknown", "never", "void",
   "int", "float", "double", "char", "bool", "long", "short", "byte",
@@ -56,8 +61,7 @@ interface IntermediateToken {
 
 export function tokenize(code: string, languageLabel: string): Token[] {
   const langKey = normalizeLanguage(languageLabel);
-  const keywordsList = keywordsMap[langKey] || keywordsMap.js;
-  const keywordsSet = new Set(keywordsList);
+  const keywordsSet = keywordsSets[langKey] || keywordsSets.js;
 
   const tokens: IntermediateToken[] = [];
   let match;
@@ -116,10 +120,11 @@ export function tokenize(code: string, languageLabel: string): Token[] {
   return refinedTokens;
 }
 
-export function renderHighlightedCode(code: string, languageLabel: string, theme: Theme) {
-  const tokens = tokenize(code, languageLabel);
+// Cache StyleSheet output per theme object — avoids re-registering styles on every highlight call
+const tokenStyleCache = new WeakMap<Theme, ReturnType<typeof createTokenStyles>>();
 
-  const tokenStyles = StyleSheet.create({
+function createTokenStyles(theme: Theme) {
+  return StyleSheet.create({
     keyword: { color: theme.syntaxKeyword, fontFamily: "monospace", includeFontPadding: false },
     comment: { color: theme.syntaxComment, fontFamily: "monospace", includeFontPadding: false },
     string: { color: theme.syntaxString, fontFamily: "monospace", includeFontPadding: false },
@@ -129,6 +134,20 @@ export function renderHighlightedCode(code: string, languageLabel: string, theme
     operator: { color: theme.syntaxOperator, fontFamily: "monospace", includeFontPadding: false },
     text: { color: theme.syntaxText, fontFamily: "monospace", includeFontPadding: false },
   });
+}
+
+function getTokenStyles(theme: Theme) {
+  let cached = tokenStyleCache.get(theme);
+  if (!cached) {
+    cached = createTokenStyles(theme);
+    tokenStyleCache.set(theme, cached);
+  }
+  return cached;
+}
+
+export function renderHighlightedCode(code: string, languageLabel: string, theme: Theme) {
+  const tokens = tokenize(code, languageLabel);
+  const tokenStyles = getTokenStyles(theme);
 
   return tokens.map((token, index) => {
     const style = tokenStyles[token.type] || tokenStyles.text;

@@ -74,6 +74,10 @@ const CreateSnippetScreen = () => {
     setToastVisible(true);
   }, []);
 
+  const hideToast = useCallback(() => {
+    setToastVisible(false);
+  }, []);
+
   // Action feedback states
   const [isScanningOcr, setIsScanningOcr] = useState(false);
 
@@ -542,7 +546,7 @@ const CreateSnippetScreen = () => {
       <Toast
         visible={toastVisible}
         message={toastMessage}
-        onHide={() => setToastVisible(false)}
+        onHide={hideToast}
       />
     </Animated.View>
   );
