@@ -1,5 +1,5 @@
 # Snipr AI — Mobile Snippet Vault 🚀
-
+testtttttttttttttttttttt
 <div align="center">
   <p><strong>Your offline-first, AI-powered developer knowledge vault for iOS & Android.</strong></p>
 
